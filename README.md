@@ -61,5 +61,13 @@ A modern, full-stack car rental management platform built for the Philippine mar
 
 ### 1. Clone the repository
 ```bash
+
+
 git clone https://github.com/YOUR_USERNAME/ph-car-rental.git
 cd ph-car-rental
+
+## 👨‍💻 Author
+
+**Homer Darang**
+- GitHub: [@badd-rabbit](https://github.com/badd-rabbit)
+- Email: homer.darang@example.com

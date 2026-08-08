@@ -21,7 +21,7 @@ app = FastAPI(title="PH Car Rental API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:5173", "https://your-frontend-domain.vercel.app"], # Add your domain later
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

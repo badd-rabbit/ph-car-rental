@@ -63,3 +63,15 @@ def needs_setup(db: Session = Depends(get_db)):
     """Check if there are any Super Admins. If not, the system needs initial setup."""
     admin_exists = db.query(User).filter(User.role == Role.SUPER_ADMIN).first()
     return {"needs_setup": admin_exists is None}
+
+
+@router.get("/seed-database")
+def seed_database(db: Session = Depends(get_db)):
+    """Temporary endpoint to seed database - DELETE AFTER FIRST USE"""
+    from app.seed_data import seed_database
+
+    try:
+        seed_database()
+        return {"message": "Database seeded successfully!"}
+    except Exception as e:
+        return {"error": str(e)}

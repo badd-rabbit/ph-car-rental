@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { useInactivityTimer } from './hooks/useInactivityTimer'; // NEW IMPORT
 import Chatbot from './components/Chatbot';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -27,6 +28,9 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 const AppRoutes = () => {
   const { user } = useAuth();
   const location = useLocation();
+
+  // NEW: Activate the inactivity timer
+  useInactivityTimer();
 
   const isInitialSetup = location.pathname === '/initial-setup';
   const isSuperAdmin = user?.role === 'super_admin';

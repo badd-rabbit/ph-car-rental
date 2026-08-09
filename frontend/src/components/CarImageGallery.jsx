@@ -4,16 +4,18 @@ import { FaTimes, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 // Helper to fix image URLs for production and local development
 const getImageUrl = (url) => {
   if (!url) return null;
-  // If it's already a full URL (e.g., from Cloudinary or external), return as-is
   if (url.startsWith('http') || url.startsWith('blob:') || url.startsWith('data:')) {
     return url;
   }
-  // Use the environment variable for the backend URL, fallback to localhost for local dev
   const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-  const cleanBaseUrl = baseUrl.replace(/\/$/, ''); // Remove trailing slash if any
-  const cleanUrl = url.startsWith('/') ? url : `/${url}`; // Ensure leading slash
+  const cleanBaseUrl = baseUrl.replace(/\/$/, '');
+  const cleanUrl = url.startsWith('/') ? url : `/${url}`;
   return `${cleanBaseUrl}${cleanUrl}`;
 };
+
+// Inline SVG placeholder to prevent infinite 404 loops
+const getPlaceholderImage = () =>
+  'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iI2UyZThmMSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjAiIGZpbGw9IiM5Y2EzYWYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5ObyBJbWFnZTwvdGV4dD48L3N2Zz4=';
 
 const CarImageGallery = ({ car, onClose }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -52,10 +54,14 @@ const CarImageGallery = ({ car, onClose }) => {
         <div className="relative bg-black">
           <div className="relative h-96 md:h-[500px] flex items-center justify-center">
             <img
-              src={getImageUrl(car.images[currentIndex])}
+              src={getImageUrl(car.images[currentIndex]) || getPlaceholderImage()}
               alt={`${car.make} ${car.model} - Image ${currentIndex + 1}`}
               className="max-w-full max-h-full object-contain"
-              onError={(e) => { e.target.src = '/placeholder-car.png'; }}
+              onError={(e) => {
+                if (e.target.src !== getPlaceholderImage()) {
+                  e.target.src = getPlaceholderImage();
+                }
+              }}
             />
 
             {/* Navigation Arrows */}
@@ -96,10 +102,14 @@ const CarImageGallery = ({ car, onClose }) => {
                   }`}
                 >
                   <img
-                    src={getImageUrl(img)}
+                    src={getImageUrl(img) || getPlaceholderImage()}
                     alt={`Thumbnail ${index + 1}`}
                     className="w-full h-full object-cover"
-                    onError={(e) => { e.target.style.display = 'none'; }}
+                    onError={(e) => {
+                      if (e.target.src !== getPlaceholderImage()) {
+                        e.target.style.display = 'none';
+                      }
+                    }}
                   />
                 </button>
               ))}

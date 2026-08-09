@@ -27,7 +27,6 @@ const MyBookings = () => {
 
   useEffect(() => {
     fetchBookings();
-    // Clear notification badge when visiting this page
     setNotificationCount(0);
   }, []);
 
@@ -60,19 +59,12 @@ const MyBookings = () => {
     const colors = {
       pending: 'bg-yellow-100 text-yellow-800',
       approved: 'bg-green-100 text-green-800',
-      rejected: 'bg-red-100 text-red-800',
+      disapproved: 'bg-red-100 text-red-800',
       completed: 'bg-blue-100 text-blue-800',
-      cancelled: 'bg-gray-100 text-gray-800'
+      cancelled_user: 'bg-gray-100 text-gray-800',
+      cancelled_admin: 'bg-gray-100 text-gray-800'
     };
     return colors[status?.toLowerCase()] || 'bg-gray-100 text-gray-800';
-  };
-
-  const canCancel = (booking) => {
-    if (!booking.created_at) return false;
-    const created = new Date(booking.created_at);
-    const now = new Date();
-    const diffMinutes = (now - created) / 60000;
-    return diffMinutes <= 3 && booking.status !== 'completed' && !booking.status.toLowerCase().includes('cancelled');
   };
 
   if (loading) {
@@ -154,7 +146,7 @@ const MyBookings = () => {
                         </p>
                       </div>
                       <span className={`px-3 py-1 rounded-full text-sm font-bold ${getStatusColor(booking.status)}`}>
-                        {booking.status?.toUpperCase()}
+                        {booking.status?.toUpperCase().replace('_', ' ')}
                       </span>
                     </div>
 
@@ -196,19 +188,7 @@ const MyBookings = () => {
                       )}
                     </div>
 
-                    {/* Cancellation Timer Info */}
-                    {booking.status !== 'completed' && !booking.status.toLowerCase().includes('cancelled') && (
-                      <div className="mt-4 text-xs text-textLight">
-                        {canCancel(booking) ? (
-                          <span className="text-green-600 font-bold">You can cancel this booking within the next 3 minutes.</span>
-                        ) : (
-                          <span className="text-red-500">Cancellation period (3 minutes) has expired.</span>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Cancel Button */}
-                    {canCancel(booking) && (
+                    {booking.status === 'pending' && (
                       <button
                         onClick={() => handleCancel(booking.id)}
                         className="mt-4 bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition flex items-center gap-2"

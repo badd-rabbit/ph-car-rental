@@ -31,7 +31,6 @@ const AdminBookings = () => {
 
   useEffect(() => {
     fetchBookings();
-    // Clear notification badge when visiting this page
     setNotificationCount(0);
   }, []);
 
@@ -122,7 +121,6 @@ const AdminBookings = () => {
         <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
           <h2 className="text-2xl font-bold text-textDark">Manage Bookings</h2>
 
-          {/* Filter Buttons */}
           <div className="flex gap-2 flex-wrap">
             {['all', 'pending', 'approved', 'disapproved', 'completed', 'cancelled'].map((status) => (
               <button

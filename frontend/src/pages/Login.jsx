@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { toast } from 'react-toastify';
-import { FaEnvelope, FaLock } from 'react-icons/fa';
+import { FaEnvelope, FaLock, FaArrowLeft } from 'react-icons/fa';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -27,18 +27,9 @@ const Login = () => {
     setLoading(true);
 
     try {
-      // Backend expects form-urlencoded data, not JSON
-      const params = new URLSearchParams();
-      params.append('grant_type', 'password');
-      params.append('username', formData.email);
-      params.append('password', formData.password);
-      params.append('scope', '');
-      params.append('client_id', 'string');
-
-      const response = await api.post('/auth/login', params, {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
-        }
+      const response = await api.post('/auth/login', {
+        username: formData.email,
+        password: formData.password
       });
 
       await login(response.data);
@@ -59,7 +50,16 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4 relative">
+      {/* Back to Home Button */}
+      <button
+        onClick={() => navigate('/')}
+        className="absolute top-6 left-6 flex items-center gap-2 text-primary hover:text-blue-800 transition font-medium"
+      >
+        <FaArrowLeft />
+        <span>Back to Home</span>
+      </button>
+
       <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
         <div className="bg-primary text-white p-6 rounded-t-lg text-center">
           <h2 className="text-2xl font-bold">Welcome Back</h2>

@@ -27,15 +27,29 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const response = await api.post('/auth/login', {
-        username: formData.email,
-        password: formData.password
+      // Backend expects form-urlencoded data, not JSON
+      const params = new URLSearchParams();
+      params.append('grant_type', 'password');
+      params.append('username', formData.email);
+      params.append('password', formData.password);
+      params.append('scope', '');
+      params.append('client_id', 'string');
+
+      const response = await api.post('/auth/login', params, {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
       });
 
       await login(response.data);
 
       toast.success('Login successful!');
-      navigate('/dashboard');
+
+      if (response.data.user.role === 'super_admin' || response.data.user.role === 'staff') {
+        navigate('/dashboard');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (error) {
       console.error('Login error:', error);
       toast.error(error.response?.data?.detail || 'Invalid email or password');

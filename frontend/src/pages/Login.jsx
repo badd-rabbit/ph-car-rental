@@ -14,78 +14,86 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+
     try {
-      await login(formData.email, formData.password);
+      // Send credentials directly - DO NOT hash the password here
+      const response = await api.post('/auth/login', formData);
+
+      // The login function in AuthContext should handle storing the token
+      await login(response.data);
+
       toast.success('Login successful!');
-      navigate('/dashboard');
+
+      // Redirect based on role
+      if (response.data.user.role === 'super_admin' || response.data.user.role === 'staff') {
+        navigate('/dashboard');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (error) {
-      toast.error(error.message || 'Login failed');
+      console.error('Login error:', error);
+      toast.error(error.response?.data?.detail || 'Invalid email or password');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
-        {/* Header */}
-        <div className="bg-primary p-6 text-center">
-          <h2 className="text-3xl font-bold text-white">Welcome Back</h2>
-          <p className="text-blue-200 mt-2">Login to PH Car Rental</p>
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+        <div className="bg-primary text-white p-6 rounded-t-lg text-center">
+          <h2 className="text-2xl font-bold">Welcome Back</h2>
+          <p className="text-sm mt-1">Login to PH Car Rental</p>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-8 space-y-6">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div className="relative">
-            <FaEnvelope className="absolute left-3 top-3.5 text-gray-400" />
+            <FaEnvelope className="absolute left-3 top-3 text-gray-400" />
             <input
               type="email"
               name="email"
-              placeholder="Email Address"
+              placeholder="Email"
               value={formData.email}
               onChange={handleChange}
-              className="w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
               required
+              className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:border-primary"
             />
           </div>
 
           <div className="relative">
-            <FaLock className="absolute left-3 top-3.5 text-gray-400" />
+            <FaLock className="absolute left-3 top-3 text-gray-400" />
             <input
               type="password"
               name="password"
               placeholder="Password"
               value={formData.password}
               onChange={handleChange}
-              className="w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
               required
+              className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:border-primary"
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-secondary text-white py-3 rounded-lg font-bold hover:bg-orange-600 transition disabled:opacity-50"
+            className="w-full bg-secondary text-white py-3 rounded-lg font-bold hover:bg-orange-600 transition disabled:bg-gray-400"
           >
             {loading ? 'Logging in...' : 'Login'}
           </button>
 
-          {/* 👇 THIS IS WHERE THE REGISTER LINK GOES 👇 */}
-          <div className="text-center mt-6">
-            <p className="text-sm text-gray-600">
-              Don't have an account?{' '}
-              <Link to="/register" className="text-primary font-bold hover:underline">
-                Register
-              </Link>
-            </p>
-          </div>
-          {/* 👆 END OF REGISTER LINK 👆 */}
+          <p className="text-center text-sm text-gray-600">
+            Don't have an account? <Link to="/register" className="text-primary hover:underline font-bold">Register</Link>
+          </p>
         </form>
       </div>
     </div>

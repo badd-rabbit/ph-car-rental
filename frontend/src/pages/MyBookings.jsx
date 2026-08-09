@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { toast } from 'react-toastify';
-import { FaCalendar, FaCar, FaTimes } from 'react-icons/fa';
+import { FaCalendar, FaCar, FaTimes, FaStar } from 'react-icons/fa';
 
 const getImageUrl = (url) => {
   if (!url) return null;
@@ -24,10 +24,15 @@ const MyBookings = () => {
   const { user, setNotificationCount } = useAuth();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [now, setNow] = useState(new Date());
 
   useEffect(() => {
     fetchBookings();
     setNotificationCount(0);
+
+    // Update timer every second
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
   }, []);
 
   const fetchBookings = async () => {
@@ -65,6 +70,26 @@ const MyBookings = () => {
       cancelled_admin: 'bg-gray-100 text-gray-800'
     };
     return colors[status?.toLowerCase()] || 'bg-gray-100 text-gray-800';
+  };
+
+  const canCancel = (booking) => {
+    if (booking.status === 'pending') return true;
+    if (booking.status === 'approved' && booking.start_date) {
+      const startDate = new Date(booking.start_date);
+      const diffMinutes = Math.abs((now - startDate) / 60000);
+      return diffMinutes <= 3;
+    }
+    return false;
+  };
+
+  const getTimeRemaining = (booking) => {
+    if (!booking.start_date) return '0:00';
+    const startDate = new Date(booking.start_date);
+    const diffMs = 3 * 60 * 1000 - Math.abs(now - startDate);
+    if (diffMs <= 0) return '0:00';
+    const minutes = Math.floor(diffMs / 60000);
+    const seconds = Math.floor((diffMs % 60000) / 1000);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
   if (loading) {
@@ -188,13 +213,48 @@ const MyBookings = () => {
                       )}
                     </div>
 
-                    {booking.status === 'pending' && (
+                    {/* 3-Minute Timer and Cancel Button */}
+                    {canCancel(booking) && booking.status !== 'pending' && (
+                      <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <p className="text-sm text-yellow-800 font-medium">
+                          ⏰ Cancellation window: {getTimeRemaining(booking)} remaining
+                        </p>
+                      </div>
+                    )}
+
+                    {canCancel(booking) && (
                       <button
                         onClick={() => handleCancel(booking.id)}
                         className="mt-4 bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition flex items-center gap-2"
                       >
                         <FaTimes /> Cancel Booking
                       </button>
+                    )}
+
+                    {/* Feedback Section for Completed Bookings */}
+                    {booking.status === 'completed' && !booking.feedback && (
+                      <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                        <p className="text-sm text-blue-800 font-medium mb-2">
+                          <FaStar className="inline mr-1" /> Please leave a review for this booking!
+                        </p>
+                        <button
+                          onClick={() => navigate(`/feedback/${booking.id}`)}
+                          className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition text-sm"
+                        >
+                          Submit Feedback
+                        </button>
+                      </div>
+                    )}
+
+                    {booking.feedback && (
+                      <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                        <p className="text-sm text-green-800 font-medium">
+                          <FaStar className="inline mr-1 text-yellow-400" /> Your Rating: {booking.feedback.rating}/5
+                        </p>
+                        {booking.feedback.comment && (
+                          <p className="text-sm text-green-700 mt-1">"{booking.feedback.comment}"</p>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>

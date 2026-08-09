@@ -176,6 +176,16 @@ def cancel_booking(booking_id: int, reason: str = None, db: Session = Depends(ge
 
     if current_user.role == Role.RENTER:
         if booking.user_id != current_user.id: raise HTTPException(status_code=403, detail="Not authorized")
+
+        # Allow cancellation if pending OR if within 3 minutes of start_date
+        is_within_3_minutes = False
+        if booking.start_date:
+            minutes_diff = (booking.start_date - datetime.utcnow()).total_seconds() / 60
+            is_within_3_minutes = abs(minutes_diff) <= 3
+
+        if booking.status != BookingStatus.PENDING and not is_within_3_minutes:
+            raise HTTPException(status_code=400, detail="Cancellation period (3 minutes) has expired")
+
         booking.status = BookingStatus.CANCELLED_USER
         if reason: booking.cancellation_reason = reason
     elif current_user.role in [Role.SUPER_ADMIN, Role.STAFF]:

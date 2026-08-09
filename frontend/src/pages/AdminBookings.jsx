@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { toast } from 'react-toastify';
-import { FaPhone, FaEnvelope, FaCalendar, FaCheck, FaTimes } from 'react-icons/fa';
+import { FaPhone, FaEnvelope, FaCalendar, FaCheck, FaTimes, FaCheckCircle } from 'react-icons/fa';
 import RejectBookingModal from '../components/RejectBookingModal';
 
 const getImageUrl = (url) => {
@@ -53,6 +53,16 @@ const AdminBookings = () => {
       fetchBookings();
     } catch (error) {
       toast.error('Failed to approve booking');
+    }
+  };
+
+  const handleComplete = async (bookingId) => {
+    try {
+      await api.put(`/bookings/${bookingId}/complete`);
+      toast.success('Booking marked as complete');
+      fetchBookings();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to complete booking');
     }
   };
 
@@ -222,7 +232,7 @@ const AdminBookings = () => {
                       <div>
                         <p className="text-xs text-textLight">Total Price</p>
                         <p className="text-lg font-bold text-secondary">
-                          ₱{booking.total_price ? booking.total_price.toLocaleString() : '0'}
+                          {booking.total_price ? booking.total_price.toLocaleString() : '0'}
                         </p>
                       </div>
                     </div>
@@ -234,22 +244,34 @@ const AdminBookings = () => {
                       </div>
                     )}
 
-                    {booking.status === 'pending' && (
-                      <div className="flex gap-3">
+                    {/* Action Buttons */}
+                    <div className="flex gap-3">
+                      {booking.status === 'pending' && (
+                        <>
+                          <button
+                            onClick={() => handleApprove(booking.id)}
+                            className="flex-1 bg-green-500 text-white py-2 rounded-lg hover:bg-green-600 transition flex items-center justify-center gap-2"
+                          >
+                            <FaCheck /> Approve Booking
+                          </button>
+                          <button
+                            onClick={() => openRejectModal(booking.id)}
+                            className="flex-1 bg-red-500 text-white py-2 rounded-lg hover:bg-red-600 transition flex items-center justify-center gap-2"
+                          >
+                            <FaTimes /> Reject Booking
+                          </button>
+                        </>
+                      )}
+
+                      {booking.status === 'approved' && (
                         <button
-                          onClick={() => handleApprove(booking.id)}
-                          className="flex-1 bg-green-500 text-white py-2 rounded-lg hover:bg-green-600 transition flex items-center justify-center gap-2"
+                          onClick={() => handleComplete(booking.id)}
+                          className="flex-1 bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition flex items-center justify-center gap-2"
                         >
-                          <FaCheck /> Approve Booking
+                          <FaCheckCircle /> Mark as Complete
                         </button>
-                        <button
-                          onClick={() => openRejectModal(booking.id)}
-                          className="flex-1 bg-red-500 text-white py-2 rounded-lg hover:bg-red-600 transition flex items-center justify-center gap-2"
-                        >
-                          <FaTimes /> Reject Booking
-                        </button>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

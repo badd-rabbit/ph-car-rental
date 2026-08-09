@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import api from '../services/api';  // <-- THIS WAS MISSING!
+import api from '../services/api';
 import { toast } from 'react-toastify';
 import { FaEnvelope, FaLock } from 'react-icons/fa';
 
@@ -27,7 +27,11 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const response = await api.post('/auth/login', formData);
+      // Backend expects 'username' not 'email' for OAuth2
+      const response = await api.post('/auth/login', {
+        username: formData.email,  // Send email as username
+        password: formData.password
+      });
 
       await login(response.data);
 

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import api from '../services/api';  // <-- THIS WAS MISSING!
 import { toast } from 'react-toastify';
 import { FaEnvelope, FaLock } from 'react-icons/fa';
 
@@ -26,15 +27,12 @@ const Login = () => {
     setLoading(true);
 
     try {
-      // Send credentials directly - DO NOT hash the password here
       const response = await api.post('/auth/login', formData);
 
-      // The login function in AuthContext should handle storing the token
       await login(response.data);
 
       toast.success('Login successful!');
 
-      // Redirect based on role
       if (response.data.user.role === 'super_admin' || response.data.user.role === 'staff') {
         navigate('/dashboard');
       } else {

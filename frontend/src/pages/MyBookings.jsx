@@ -83,7 +83,7 @@ const MyBookings = () => {
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-textDark">My Bookings</h2>
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/dashboard')}
             className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-blue-800 transition"
           >
             Browse Cars

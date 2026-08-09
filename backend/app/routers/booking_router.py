@@ -89,7 +89,6 @@ def get_my_bookings(db: Session = Depends(get_db), current_user: User = Depends(
         result = []
         for booking in bookings:
             feedback = db.query(Feedback).filter(Feedback.booking_id == booking.id).first()
-            # FIX: Include created_at for the 24-hour edit logic
             feedback_dict = None
             if feedback:
                 feedback_dict = {
@@ -102,13 +101,24 @@ def get_my_bookings(db: Session = Depends(get_db), current_user: User = Depends(
             payment_val = booking.payment_method.value if hasattr(booking.payment_method,
                                                                   'value') else booking.payment_method
 
+            # Calculate Total Price
+            days = (booking.end_date - booking.start_date).days
+            total_price = max(1, days) * booking.car.price_per_day if booking.car else 0
+
             result.append({
                 "id": booking.id, "car_id": booking.car_id,
                 "start_date": booking.start_date, "end_date": booking.end_date,
                 "status": status_val, "payment_method": payment_val,
+                "total_price": total_price,
                 "cancellation_reason": booking.cancellation_reason,
                 "approved_at": booking.approved_at,
-                "car": serialize_car(booking.car), "feedback": feedback_dict
+                "car": serialize_car(booking.car), "feedback": feedback_dict,
+                "user": {
+                    "id": current_user.id,
+                    "email": current_user.email,
+                    "full_name": current_user.full_name,
+                    "mobile_number": current_user.mobile_number
+                }
             })
         return result
     except Exception as e:
@@ -135,23 +145,35 @@ def get_all_bookings(db: Session = Depends(get_db)):
         payment_val = booking.payment_method.value if hasattr(booking.payment_method,
                                                               'value') else booking.payment_method
 
+        # Calculate Total Price
+        days = (booking.end_date - booking.start_date).days
+        total_price = max(1, days) * booking.car.price_per_day if booking.car else 0
+
         result.append({
             "id": booking.id, "car_id": booking.car_id,
             "user_id": booking.user_id,
             "renter_name": booking.user.full_name if booking.user else "Unknown",
             "renter_email": booking.user.email if booking.user else "Unknown",
+            "renter_mobile_number": booking.user.mobile_number if booking.user else "N/A",
             "start_date": booking.start_date, "end_date": booking.end_date,
             "status": status_val, "payment_method": payment_val,
+            "total_price": total_price,
             "cancellation_reason": booking.cancellation_reason,
             "approved_at": booking.approved_at,
-            "car": serialize_car(booking.car), "feedback": feedback_dict
+            "car": serialize_car(booking.car), "feedback": feedback_dict,
+            "user": {
+                "id": booking.user.id if booking.user else None,
+                "email": booking.user.email if booking.user else "N/A",
+                "full_name": booking.user.full_name if booking.user else "N/A",
+                "mobile_number": booking.user.mobile_number if booking.user else "N/A"
+            }
         })
     return result
 
 
 @router.get("/{booking_id}", response_model=BookingWithCarResponse)
 def get_booking(booking_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    booking = db.query(Booking).options(joinedload(Booking.car)).filter(Booking.id == booking_id).first()
+    booking = db.query(Booking).options(joinedload(Booking.car), joinedload(Booking.user)).filter(Booking.id == booking_id).first()
     if not booking: raise HTTPException(status_code=404, detail="Booking not found")
     if current_user.role == Role.RENTER and booking.user_id != current_user.id: raise HTTPException(status_code=403,
                                                                                                     detail="Not authorized")
@@ -168,13 +190,24 @@ def get_booking(booking_id: int, db: Session = Depends(get_db), current_user: Us
     status_val = booking.status.value if hasattr(booking.status, 'value') else booking.status
     payment_val = booking.payment_method.value if hasattr(booking.payment_method, 'value') else booking.payment_method
 
+    # Calculate Total Price
+    days = (booking.end_date - booking.start_date).days
+    total_price = max(1, days) * booking.car.price_per_day if booking.car else 0
+
     return {
         "id": booking.id, "car_id": booking.car_id,
         "start_date": booking.start_date, "end_date": booking.end_date,
         "status": status_val, "payment_method": payment_val,
+        "total_price": total_price,
         "cancellation_reason": booking.cancellation_reason,
         "approved_at": booking.approved_at,
-        "car": serialize_car(booking.car), "feedback": feedback_dict
+        "car": serialize_car(booking.car), "feedback": feedback_dict,
+        "user": {
+            "id": booking.user.id if booking.user else None,
+            "email": booking.user.email if booking.user else "N/A",
+            "full_name": booking.user.full_name if booking.user else "N/A",
+            "mobile_number": booking.user.mobile_number if booking.user else "N/A"
+        }
     }
 
 

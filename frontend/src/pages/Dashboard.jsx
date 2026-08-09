@@ -27,7 +27,7 @@ const getPlaceholderImage = () =>
   'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iI2UyZThmMSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjAiIGZpbGw9IiM5Y2EzYWYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5ObyBJbWFnZTwvdGV4dD48L3N2Zz4=';
 
 const Dashboard = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, notificationCount } = useAuth();
   const navigate = useNavigate();
   const [cars, setCars] = useState([]);
   const [selectedCar, setSelectedCar] = useState(null);
@@ -37,7 +37,6 @@ const Dashboard = () => {
   const [deleteCar, setDeleteCar] = useState(null);
   const [carType, setCarType] = useState('');
   const [fuelType, setFuelType] = useState('');
-  const [notificationCount, setNotificationCount] = useState(0);
 
   const fetchCars = async () => {
     try {
@@ -54,18 +53,8 @@ const Dashboard = () => {
     }
   };
 
-  const fetchNotifications = async () => {
-    try {
-      const res = await api.get('/bookings/notification-count');
-      setNotificationCount(res.data.count);
-    } catch (error) {
-      console.error('Failed to fetch notifications');
-    }
-  };
-
   useEffect(() => {
     fetchCars();
-    fetchNotifications();
   }, [carType, fuelType]);
 
   const handleDeleteConfirm = async () => {

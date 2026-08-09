@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { toast } from 'react-toastify';
-import { FaCalendar, FaCar, FaClock } from 'react-icons/fa';
+import { FaCalendar, FaCar, FaTimes } from 'react-icons/fa';
 
 const getImageUrl = (url) => {
   if (!url) return null;
@@ -20,11 +21,14 @@ const getPlaceholderImage = () =>
 
 const MyBookings = () => {
   const navigate = useNavigate();
+  const { user, setNotificationCount } = useAuth();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchBookings();
+    // Clear notification badge when visiting this page
+    setNotificationCount(0);
   }, []);
 
   const fetchBookings = async () => {
@@ -39,6 +43,19 @@ const MyBookings = () => {
     }
   };
 
+  const handleCancel = async (bookingId) => {
+    const reason = window.prompt("Please enter a reason for cancellation:");
+    if (!reason) return;
+
+    try {
+      await api.put(`/bookings/${bookingId}/cancel?reason=${encodeURIComponent(reason)}`);
+      toast.success('Booking cancelled');
+      fetchBookings();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to cancel booking');
+    }
+  };
+
   const getStatusColor = (status) => {
     const colors = {
       pending: 'bg-yellow-100 text-yellow-800',
@@ -48,6 +65,14 @@ const MyBookings = () => {
       cancelled: 'bg-gray-100 text-gray-800'
     };
     return colors[status?.toLowerCase()] || 'bg-gray-100 text-gray-800';
+  };
+
+  const canCancel = (booking) => {
+    if (!booking.created_at) return false;
+    const created = new Date(booking.created_at);
+    const now = new Date();
+    const diffMinutes = (now - created) / 60000;
+    return diffMinutes <= 3 && booking.status !== 'completed' && !booking.status.toLowerCase().includes('cancelled');
   };
 
   if (loading) {
@@ -63,7 +88,6 @@ const MyBookings = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Navbar */}
       <nav className="bg-primary text-white shadow-md">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
           <h1 className="text-xl font-bold">PH Car Rental</h1>
@@ -71,8 +95,8 @@ const MyBookings = () => {
             <button onClick={() => navigate('/settings')} className="bg-white text-primary px-4 py-1 rounded text-sm hover:bg-gray-100 transition">
               Settings
             </button>
-            <span className="text-sm">Welcome, Test Renter</span>
-            <button onClick={() => navigate('/')} className="bg-secondary px-4 py-1 rounded text-sm hover:bg-orange-600 transition">
+            <span className="text-sm">Welcome, {user?.full_name}</span>
+            <button onClick={() => { navigate('/'); window.location.reload(); }} className="bg-secondary px-4 py-1 rounded text-sm hover:bg-orange-600 transition">
               Logout
             </button>
           </div>
@@ -95,7 +119,7 @@ const MyBookings = () => {
             <FaCar className="text-6xl text-gray-300 mx-auto mb-4" />
             <p className="text-textLight text-lg mb-4">You have no bookings yet</p>
             <button
-              onClick={() => navigate('/')}
+              onClick={() => navigate('/dashboard')}
               className="bg-secondary text-white px-6 py-2 rounded-lg hover:bg-orange-600 transition"
             >
               Book Your First Car
@@ -106,7 +130,6 @@ const MyBookings = () => {
             {bookings.map((booking) => (
               <div key={booking.id} className="bg-white rounded-lg shadow-md p-6">
                 <div className="flex flex-col md:flex-row gap-6">
-                  {/* Car Image */}
                   <div className="md:w-1/4">
                     <img
                       src={getImageUrl(booking.car?.images?.[0]) || getPlaceholderImage()}
@@ -120,7 +143,6 @@ const MyBookings = () => {
                     />
                   </div>
 
-                  {/* Booking Details */}
                   <div className="flex-1">
                     <div className="flex justify-between items-start mb-4">
                       <div>
@@ -130,14 +152,6 @@ const MyBookings = () => {
                         <p className="text-textLight text-sm mt-1">
                           {booking.car?.color} • {booking.car?.seat_number} Seats
                         </p>
-                        <div className="flex gap-2 mt-2">
-                          <span className="bg-blue-50 text-primary text-xs px-2 py-1 rounded">
-                            {booking.car?.car_type}
-                          </span>
-                          <span className="bg-orange-50 text-secondary text-xs px-2 py-1 rounded">
-                            {booking.car?.fuel_type}
-                          </span>
-                        </div>
                       </div>
                       <span className={`px-3 py-1 rounded-full text-sm font-bold ${getStatusColor(booking.status)}`}>
                         {booking.status?.toUpperCase()}
@@ -167,24 +181,41 @@ const MyBookings = () => {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                      <div className="flex items-start gap-2">
-                        <div>
-                          <p className="text-xs text-textLight">Total Price</p>
-                          <p className="text-lg font-bold text-secondary">
-                            ₱{booking.total_price ? booking.total_price.toLocaleString() : '0'}
-                          </p>
-                        </div>
+                      <div>
+                        <p className="text-xs text-textLight">Total Price</p>
+                        <p className="text-lg font-bold text-secondary">
+                          ₱{booking.total_price ? booking.total_price.toLocaleString() : '0'}
+                        </p>
                       </div>
 
                       {booking.payment_method && (
-                        <div className="flex items-start gap-2">
-                          <div>
-                            <p className="text-xs text-textLight">Payment Method</p>
-                            <p className="text-sm font-medium text-textDark capitalize">{booking.payment_method}</p>
-                          </div>
+                        <div>
+                          <p className="text-xs text-textLight">Payment Method</p>
+                          <p className="text-sm font-medium text-textDark capitalize">{booking.payment_method}</p>
                         </div>
                       )}
                     </div>
+
+                    {/* Cancellation Timer Info */}
+                    {booking.status !== 'completed' && !booking.status.toLowerCase().includes('cancelled') && (
+                      <div className="mt-4 text-xs text-textLight">
+                        {canCancel(booking) ? (
+                          <span className="text-green-600 font-bold">You can cancel this booking within the next 3 minutes.</span>
+                        ) : (
+                          <span className="text-red-500">Cancellation period (3 minutes) has expired.</span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Cancel Button */}
+                    {canCancel(booking) && (
+                      <button
+                        onClick={() => handleCancel(booking.id)}
+                        className="mt-4 bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition flex items-center gap-2"
+                      >
+                        <FaTimes /> Cancel Booking
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

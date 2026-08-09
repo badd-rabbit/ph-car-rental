@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { toast } from 'react-toastify';
 import { FaPhone, FaEnvelope, FaCalendar, FaCheck, FaTimes } from 'react-icons/fa';
@@ -21,13 +22,17 @@ const getPlaceholderImage = () =>
 
 const AdminBookings = () => {
   const navigate = useNavigate();
+  const { setNotificationCount } = useAuth();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState('all');
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [selectedBookingId, setSelectedBookingId] = useState(null);
 
   useEffect(() => {
     fetchBookings();
+    // Clear notification badge when visiting this page
+    setNotificationCount(0);
   }, []);
 
   const fetchBookings = async () => {
@@ -72,12 +77,21 @@ const AdminBookings = () => {
     const colors = {
       pending: 'bg-yellow-100 text-yellow-800',
       approved: 'bg-green-100 text-green-800',
-      rejected: 'bg-red-100 text-red-800',
+      disapproved: 'bg-red-100 text-red-800',
       completed: 'bg-blue-100 text-blue-800',
-      cancelled: 'bg-gray-100 text-gray-800'
+      cancelled_user: 'bg-gray-100 text-gray-800',
+      cancelled_admin: 'bg-gray-100 text-gray-800'
     };
     return colors[status?.toLowerCase()] || 'bg-gray-100 text-gray-800';
   };
+
+  const filteredBookings = bookings.filter(booking => {
+    if (statusFilter === 'all') return true;
+    if (statusFilter === 'cancelled') {
+      return booking.status.toLowerCase().includes('cancelled');
+    }
+    return booking.status.toLowerCase() === statusFilter.toLowerCase();
+  });
 
   if (loading) {
     return (
@@ -92,7 +106,6 @@ const AdminBookings = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Navbar */}
       <nav className="bg-primary text-white shadow-md">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
           <h1 className="text-xl font-bold">PH Car Rental Admin</h1>
@@ -106,18 +119,36 @@ const AdminBookings = () => {
       </nav>
 
       <div className="max-w-7xl mx-auto p-6">
-        <h2 className="text-2xl font-bold text-textDark mb-6">Manage Bookings</h2>
+        <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
+          <h2 className="text-2xl font-bold text-textDark">Manage Bookings</h2>
 
-        {bookings.length === 0 ? (
+          {/* Filter Buttons */}
+          <div className="flex gap-2 flex-wrap">
+            {['all', 'pending', 'approved', 'disapproved', 'completed', 'cancelled'].map((status) => (
+              <button
+                key={status}
+                onClick={() => setStatusFilter(status)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                  statusFilter === status 
+                    ? 'bg-primary text-white' 
+                    : 'bg-white text-textDark border hover:bg-gray-100'
+                }`}
+              >
+                {status === 'all' ? 'All Bookings' : status.charAt(0).toUpperCase() + status.slice(1)}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {filteredBookings.length === 0 ? (
           <div className="bg-white rounded-lg shadow-md p-12 text-center">
-            <p className="text-textLight text-lg">No bookings found</p>
+            <p className="text-textLight text-lg">No bookings found for this status</p>
           </div>
         ) : (
           <div className="space-y-4">
-            {bookings.map((booking) => (
+            {filteredBookings.map((booking) => (
               <div key={booking.id} className="bg-white rounded-lg shadow-md p-6">
                 <div className="flex flex-col lg:flex-row gap-6">
-                  {/* Car Image */}
                   <div className="lg:w-1/4">
                     <img
                       src={getImageUrl(booking.car?.images?.[0]) || getPlaceholderImage()}
@@ -131,7 +162,6 @@ const AdminBookings = () => {
                     />
                   </div>
 
-                  {/* Booking Details */}
                   <div className="flex-1">
                     <div className="flex justify-between items-start mb-4">
                       <div>
@@ -143,11 +173,10 @@ const AdminBookings = () => {
                         </p>
                       </div>
                       <span className={`px-3 py-1 rounded-full text-sm font-bold ${getStatusColor(booking.status)}`}>
-                        {booking.status?.toUpperCase()}
+                        {booking.status?.toUpperCase().replace('_', ' ')}
                       </span>
                     </div>
 
-                    {/* Renter Information */}
                     <div className="bg-gray-50 rounded-lg p-4 mb-4">
                       <h4 className="font-bold text-textDark mb-3">Renter Information</h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -177,7 +206,6 @@ const AdminBookings = () => {
                       </div>
                     </div>
 
-                    {/* Booking Details */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                       <div>
                         <p className="text-xs text-textLight">Start Date</p>
@@ -208,7 +236,6 @@ const AdminBookings = () => {
                       </div>
                     )}
 
-                    {/* Action Buttons */}
                     {booking.status === 'pending' && (
                       <div className="flex gap-3">
                         <button
@@ -233,7 +260,6 @@ const AdminBookings = () => {
         )}
       </div>
 
-      {/* Rejection Modal */}
       <RejectBookingModal
         isOpen={rejectModalOpen}
         onClose={() => setRejectModalOpen(false)}

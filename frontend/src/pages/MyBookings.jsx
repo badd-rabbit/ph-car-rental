@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { toast } from 'react-toastify';
-import { FaCalendar, FaCar, FaClock, FaDollarSign } from 'react-icons/fa';
+import { FaCalendar, FaCar, FaClock} from 'react-icons/fa';
 
 // Helper to fix image URLs for production and local development
 const getImageUrl = (url) => {
@@ -168,7 +168,6 @@ const MyBookings = () => {
                       </div>
 
                       <div className="flex items-start gap-2">
-                        <FaDollarSign className="text-secondary mt-1" />
                         <div>
                           <p className="text-xs text-textLight">Total Price</p>
                           <p className="text-sm font-bold text-secondary">
@@ -179,11 +178,12 @@ const MyBookings = () => {
                     </div>
 
                     {booking.payment_method && (
-                      <div className="mt-4 flex items-center gap-2">
-                        <FaDollarSign className="text-primary" />
+                      <div className="flex items-start gap-2">
                         <div>
-                          <p className="text-xs text-textLight">Payment Method</p>
-                          <p className="text-sm font-medium text-textDark">{booking.payment_method}</p>
+                          <p className="text-xs text-textLight">Total Price</p>
+                          <p className="text-sm font-bold text-secondary">
+                            ₱{booking.total_price?.toLocaleString()}
+                          </p>
                         </div>
                       </div>
                     )}

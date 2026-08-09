@@ -1,4 +1,5 @@
 import { FaTrash, FaTimes } from 'react-icons/fa';
+import PropTypes from 'prop-types'; // <--- ADD THIS
 
 const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, itemName }) => {
   if (!isOpen) return null;
@@ -14,7 +15,7 @@ const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, itemName }) => {
           <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
             <FaTrash className="h-6 w-6 text-red-600" />
           </div>
-          <h3 className="text-lg leading-6 font-medium text-gray-900 mb-2">Delete Car</h3>
+          <h3 className="text-lg leading-6 font-medium text-gray-900 mb-2">Delete Item</h3>
           <div className="mt-2 px-7 py-3">
             <p className="text-sm text-gray-500">
               Are you sure you want to delete <strong>{itemName}</strong>? This action cannot be undone.
@@ -39,6 +40,14 @@ const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, itemName }) => {
       </div>
     </div>
   );
+};
+
+// <--- ADD THIS SECTION AT THE BOTTOM
+DeleteConfirmModal.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  onConfirm: PropTypes.func.isRequired,
+  itemName: PropTypes.string
 };
 
 export default DeleteConfirmModal;

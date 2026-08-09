@@ -7,14 +7,20 @@ import { FaCalendar, FaCar, FaTimes, FaStar, FaTrash } from 'react-icons/fa';
 import { getImageUrl, getPlaceholderImage, getStatusColor } from '../utils/helpers';
 import { useCancellationTimer } from '../hooks/useCancellationTimer';
 import FeedbackModal from '../components/FeedbackModal';
+import DeleteConfirmModal from '../components/DeleteConfirmModal';
 
 const MyBookings = () => {
   const navigate = useNavigate();
   const { user, setNotificationCount } = useAuth();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Modal States
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [selectedBookingId, setSelectedBookingId] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const { canCancel, getTimeRemaining } = useCancellationTimer(bookings);
 
   useEffect(() => {
@@ -47,17 +53,23 @@ const MyBookings = () => {
     }
   };
 
-  const handleDelete = async (bookingId) => {
-    if (!window.confirm('Are you sure you want to delete this booking? This action cannot be undone.')) {
-      return;
-    }
+  const openDeleteModal = (bookingId) => {
+    setSelectedBookingId(bookingId);
+    setDeleteModalOpen(true);
+  };
 
+  const handleDeleteConfirm = async () => {
+    if (!selectedBookingId) return;
+    setIsDeleting(true);
     try {
-      await api.delete(`/bookings/${bookingId}`);
+      await api.delete(`/bookings/${selectedBookingId}`);
       toast.success('Booking deleted successfully');
+      setDeleteModalOpen(false);
       fetchBookings();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to delete booking');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -144,7 +156,7 @@ const MyBookings = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                       <div>
                         <p className="text-xs text-textLight">Total Price</p>
-                        <p className="text-lg font-bold text-secondary">₱{booking.total_price ? booking.total_price.toLocaleString() : '0'}</p>
+                        <p className="text-lg font-bold text-secondary">{booking.total_price ? booking.total_price.toLocaleString() : '0'}</p>
                       </div>
                       {booking.payment_method && (
                         <div>
@@ -181,7 +193,7 @@ const MyBookings = () => {
                       )}
 
                       {canDelete(booking) && (
-                        <button onClick={() => handleDelete(booking.id)} className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition flex items-center gap-2">
+                        <button onClick={() => openDeleteModal(booking.id)} className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition flex items-center gap-2">
                           <FaTrash /> Delete
                         </button>
                       )}
@@ -199,6 +211,13 @@ const MyBookings = () => {
         onClose={() => setFeedbackModalOpen(false)}
         bookingId={selectedBookingId}
         onSuccess={fetchBookings}
+      />
+
+      <DeleteConfirmModal
+        isOpen={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        onConfirm={handleDeleteConfirm}
+        itemName="this booking"
       />
     </div>
   );

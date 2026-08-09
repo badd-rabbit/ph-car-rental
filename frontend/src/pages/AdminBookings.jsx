@@ -6,6 +6,7 @@ import { toast } from 'react-toastify';
 import { FaPhone, FaEnvelope, FaCalendar, FaCheck, FaTimes, FaCheckCircle, FaTrash } from 'react-icons/fa';
 import { getImageUrl, getPlaceholderImage, getStatusColor } from '../utils/helpers';
 import RejectBookingModal from '../components/RejectBookingModal';
+import DeleteConfirmModal from '../components/DeleteConfirmModal';
 
 const AdminBookings = () => {
   const navigate = useNavigate();
@@ -13,8 +14,12 @@ const AdminBookings = () => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
+
+  // Modal States
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [selectedBookingId, setSelectedBookingId] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     fetchBookings();
@@ -53,17 +58,23 @@ const AdminBookings = () => {
     }
   };
 
-  const handleDelete = async (bookingId) => {
-    if (!window.confirm('Are you sure you want to delete this booking? This action cannot be undone.')) {
-      return;
-    }
+  const openDeleteModal = (bookingId) => {
+    setSelectedBookingId(bookingId);
+    setDeleteModalOpen(true);
+  };
 
+  const handleDeleteConfirm = async () => {
+    if (!selectedBookingId) return;
+    setIsDeleting(true);
     try {
-      await api.delete(`/bookings/${bookingId}`);
+      await api.delete(`/bookings/${selectedBookingId}`);
       toast.success('Booking deleted successfully');
+      setDeleteModalOpen(false);
       fetchBookings();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to delete booking');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -226,7 +237,7 @@ const AdminBookings = () => {
                       )}
 
                       {canDelete(booking) && (
-                        <button onClick={() => handleDelete(booking.id)} className="flex-1 bg-gray-500 text-white py-2 rounded-lg hover:bg-gray-600 transition flex items-center justify-center gap-2">
+                        <button onClick={() => openDeleteModal(booking.id)} className="flex-1 bg-gray-500 text-white py-2 rounded-lg hover:bg-gray-600 transition flex items-center justify-center gap-2">
                           <FaTrash /> Delete
                         </button>
                       )}
@@ -243,6 +254,13 @@ const AdminBookings = () => {
         isOpen={rejectModalOpen}
         onClose={() => setRejectModalOpen(false)}
         onConfirm={handleRejectConfirm}
+      />
+
+      <DeleteConfirmModal
+        isOpen={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        onConfirm={handleDeleteConfirm}
+        itemName="this booking"
       />
     </div>
   );

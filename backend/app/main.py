@@ -23,7 +23,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",
-        "https://statuesque-paletas-d087e4.netlify.app", # <--- ADD THIS LINE
+        # "https://statuesque-paletas-d087e4.netlify.app", # Your old Netlify site
+        "https://ph-car-rental.pages.dev", # <--- ADD THIS NEW LINE
     ],
     allow_credentials=True,
     allow_methods=["*"],

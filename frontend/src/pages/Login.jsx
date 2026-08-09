@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { toast } from 'react-toastify';
-import { FaEnvelope, FaLock, FaArrowLeft } from 'react-icons/fa';
+import { FaEnvelope, FaLock, FaHome } from 'react-icons/fa';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -35,12 +35,7 @@ const Login = () => {
       await login(response.data);
 
       toast.success('Login successful!');
-
-      if (response.data.user.role === 'super_admin' || response.data.user.role === 'staff') {
-        navigate('/dashboard');
-      } else {
-        navigate('/dashboard');
-      }
+      navigate('/dashboard');
     } catch (error) {
       console.error('Login error:', error);
       toast.error(error.response?.data?.detail || 'Invalid email or password');
@@ -50,20 +45,23 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4 relative">
-      {/* Back to Home Button */}
-      <button
-        onClick={() => navigate('/')}
-        className="absolute top-6 left-6 flex items-center gap-2 text-primary hover:text-blue-800 transition font-medium"
-      >
-        <FaArrowLeft />
-        <span>Back to Home</span>
-      </button>
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden">
 
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
-        <div className="bg-primary text-white p-6 rounded-t-lg text-center">
-          <h2 className="text-2xl font-bold">Welcome Back</h2>
-          <p className="text-sm mt-1">Login to PH Car Rental</p>
+        {/* Modal Header with Back to Home Button */}
+        <div className="bg-primary text-white p-6 relative">
+          <button
+            onClick={() => navigate('/')}
+            className="absolute top-4 right-4 text-white hover:text-orange-200 transition"
+            title="Back to Home"
+          >
+            <FaHome size={20} />
+          </button>
+
+          <div className="text-center">
+            <h2 className="text-2xl font-bold">Welcome Back</h2>
+            <p className="text-sm mt-1">Login to PH Car Rental</p>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">

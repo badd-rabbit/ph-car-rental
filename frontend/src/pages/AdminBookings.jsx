@@ -50,12 +50,20 @@ const AdminBookings = () => {
   };
 
   const handleReject = async (bookingId) => {
+    // Ask for a reason (using prompt for input)
+    const reason = window.prompt("Please enter a reason for rejection:");
+
+    // If user cancels or leaves it empty, stop
+    if (!reason) return;
+
     try {
-      await api.put(`/bookings/${bookingId}/disapprove`);
+      // Send the reason as a query parameter
+      await api.put(`/bookings/${bookingId}/disapprove?reason=${encodeURIComponent(reason)}`);
       toast.success('Booking rejected');
       fetchBookings();
     } catch (error) {
-      toast.error('Failed to reject booking');
+      console.error('Reject error:', error);
+      toast.error(error.response?.data?.detail || 'Failed to reject booking');
     }
   };
 
@@ -187,7 +195,7 @@ const AdminBookings = () => {
                       <div>
                         <p className="text-xs text-textLight">Total Price</p>
                         <p className="text-lg font-bold text-secondary">
-                          ₱{booking.total_price ? booking.total_price.toLocaleString() : '0'}
+                          {booking.total_price ? booking.total_price.toLocaleString() : '0'}
                         </p>
                       </div>
                     </div>

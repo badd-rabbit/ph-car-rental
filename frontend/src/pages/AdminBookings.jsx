@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { toast } from 'react-toastify';
 import { FaPhone, FaEnvelope, FaCalendar, FaCheck, FaTimes } from 'react-icons/fa';
+import RejectBookingModal from '../components/RejectBookingModal';
 
 const getImageUrl = (url) => {
   if (!url) return null;
@@ -22,6 +23,8 @@ const AdminBookings = () => {
   const navigate = useNavigate();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [rejectModalOpen, setRejectModalOpen] = useState(false);
+  const [selectedBookingId, setSelectedBookingId] = useState(null);
 
   useEffect(() => {
     fetchBookings();
@@ -49,16 +52,14 @@ const AdminBookings = () => {
     }
   };
 
-  const handleReject = async (bookingId) => {
-    // Ask for a reason (using prompt for input)
-    const reason = window.prompt("Please enter a reason for rejection:");
+  const openRejectModal = (bookingId) => {
+    setSelectedBookingId(bookingId);
+    setRejectModalOpen(true);
+  };
 
-    // If user cancels or leaves it empty, stop
-    if (!reason) return;
-
+  const handleRejectConfirm = async (reason) => {
     try {
-      // Send the reason as a query parameter
-      await api.put(`/bookings/${bookingId}/disapprove?reason=${encodeURIComponent(reason)}`);
+      await api.put(`/bookings/${selectedBookingId}/disapprove?reason=${encodeURIComponent(reason)}`);
       toast.success('Booking rejected');
       fetchBookings();
     } catch (error) {
@@ -195,7 +196,7 @@ const AdminBookings = () => {
                       <div>
                         <p className="text-xs text-textLight">Total Price</p>
                         <p className="text-lg font-bold text-secondary">
-                          {booking.total_price ? booking.total_price.toLocaleString() : '0'}
+                          ₱{booking.total_price ? booking.total_price.toLocaleString() : '0'}
                         </p>
                       </div>
                     </div>
@@ -217,7 +218,7 @@ const AdminBookings = () => {
                           <FaCheck /> Approve Booking
                         </button>
                         <button
-                          onClick={() => handleReject(booking.id)}
+                          onClick={() => openRejectModal(booking.id)}
                           className="flex-1 bg-red-500 text-white py-2 rounded-lg hover:bg-red-600 transition flex items-center justify-center gap-2"
                         >
                           <FaTimes /> Reject Booking
@@ -231,6 +232,13 @@ const AdminBookings = () => {
           </div>
         )}
       </div>
+
+      {/* Rejection Modal */}
+      <RejectBookingModal
+        isOpen={rejectModalOpen}
+        onClose={() => setRejectModalOpen(false)}
+        onConfirm={handleRejectConfirm}
+      />
     </div>
   );
 };

@@ -10,9 +10,16 @@ import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import CarImageGallery from '../components/CarImageGallery';
 import { FaStar, FaEdit, FaTrash } from 'react-icons/fa';
 
+// Helper to fix image URLs for production and local development
 const getImageUrl = (url) => {
   if (!url) return null;
-  return url.startsWith('/uploads/') ? `http://localhost:8000${url}` : url;
+  if (url.startsWith('http') || url.startsWith('blob:') || url.startsWith('data:')) {
+    return url;
+  }
+  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+  const cleanBaseUrl = baseUrl.replace(/\/$/, '');
+  const cleanUrl = url.startsWith('/') ? url : `/${url}`;
+  return `${cleanBaseUrl}${cleanUrl}`;
 };
 
 const Dashboard = () => {
@@ -172,6 +179,7 @@ const Dashboard = () => {
                       src={getImageUrl(car.images[0])}
                       alt={`${car.make} ${car.model}`}
                       className="w-full h-full object-cover"
+                      onError={(e) => { e.target.src = '/placeholder-car.png'; }}
                     />
                   ) : (
                     <span className="text-6xl">🚗</span>

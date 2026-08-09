@@ -1,10 +1,18 @@
 import { useState } from 'react';
 import { FaTimes, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 
-// Helper to fix image URLs
+// Helper to fix image URLs for production and local development
 const getImageUrl = (url) => {
   if (!url) return null;
-  return url.startsWith('/uploads/') ? `http://localhost:8000${url}` : url;
+  // If it's already a full URL (e.g., from Cloudinary or external), return as-is
+  if (url.startsWith('http') || url.startsWith('blob:') || url.startsWith('data:')) {
+    return url;
+  }
+  // Use the environment variable for the backend URL, fallback to localhost for local dev
+  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+  const cleanBaseUrl = baseUrl.replace(/\/$/, ''); // Remove trailing slash if any
+  const cleanUrl = url.startsWith('/') ? url : `/${url}`; // Ensure leading slash
+  return `${cleanBaseUrl}${cleanUrl}`;
 };
 
 const CarImageGallery = ({ car, onClose }) => {
@@ -47,6 +55,7 @@ const CarImageGallery = ({ car, onClose }) => {
               src={getImageUrl(car.images[currentIndex])}
               alt={`${car.make} ${car.model} - Image ${currentIndex + 1}`}
               className="max-w-full max-h-full object-contain"
+              onError={(e) => { e.target.src = '/placeholder-car.png'; }}
             />
 
             {/* Navigation Arrows */}
@@ -90,6 +99,7 @@ const CarImageGallery = ({ car, onClose }) => {
                     src={getImageUrl(img)}
                     alt={`Thumbnail ${index + 1}`}
                     className="w-full h-full object-cover"
+                    onError={(e) => { e.target.style.display = 'none'; }}
                   />
                 </button>
               ))}

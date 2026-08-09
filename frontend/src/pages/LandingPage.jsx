@@ -7,21 +7,26 @@ import PublicNavbar from '../components/PublicNavbar';
 import Footer from '../components/Footer';
 import CarImageGallery from '../components/CarImageGallery';
 
-// Helper to fix image URLs for uploaded files
+// Helper to fix image URLs for production and local development
 const getImageUrl = (url) => {
   if (!url) return null;
-  return url.startsWith('/uploads/') ? `http://localhost:8000${url}` : url;
+  if (url.startsWith('http') || url.startsWith('blob:') || url.startsWith('data:')) {
+    return url;
+  }
+  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+  const cleanBaseUrl = baseUrl.replace(/\/$/, '');
+  const cleanUrl = url.startsWith('/') ? url : `/${url}`;
+  return `${cleanBaseUrl}${cleanUrl}`;
 };
 
 const LandingPage = () => {
   const navigate = useNavigate();
   const [cars, setCars] = useState([]);
-  const [reviews, setReviews] = useState([]); // NEW: State for public reviews
+  const [reviews, setReviews] = useState([]);
   const [galleryCar, setGalleryCar] = useState(null);
   const [carType, setCarType] = useState('');
   const [fuelType, setFuelType] = useState('');
 
-  // Fetch Cars
   const fetchCars = async () => {
     try {
       let url = '/cars/';
@@ -42,7 +47,6 @@ const LandingPage = () => {
     fetchCars();
   }, [carType, fuelType]);
 
-  // NEW: Fetch Public Reviews
   useEffect(() => {
     const fetchReviews = async () => {
       try {
@@ -157,6 +161,7 @@ const LandingPage = () => {
                       src={getImageUrl(car.images[0])}
                       alt={`${car.make} ${car.model}`}
                       className="w-full h-full object-cover"
+                      onError={(e) => { e.target.src = '/placeholder-car.png'; }}
                     />
                   ) : (
                     <span className="text-6xl">🚗</span>
@@ -200,7 +205,7 @@ const LandingPage = () => {
           </div>
         )}
 
-        {/* NEW: View All Reviews Button */}
+        {/* View All Reviews Button */}
         {reviews.length > 0 && (
           <div className="text-center mt-12">
             <button

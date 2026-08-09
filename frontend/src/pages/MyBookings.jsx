@@ -3,19 +3,18 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { toast } from 'react-toastify';
-import { FaCalendar, FaCar, FaTimes, FaStar } from 'react-icons/fa';
-// IMPORT CENTRALIZED HELPERS
+import { FaCalendar, FaCar, FaTimes, FaStar, FaTrash } from 'react-icons/fa';
 import { getImageUrl, getPlaceholderImage, getStatusColor } from '../utils/helpers';
-// IMPORT CUSTOM HOOK
 import { useCancellationTimer } from '../hooks/useCancellationTimer';
+import FeedbackModal from '../components/FeedbackModal';
 
 const MyBookings = () => {
   const navigate = useNavigate();
   const { user, setNotificationCount } = useAuth();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  // Use the custom hook instead of writing timer logic here
+  const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
+  const [selectedBookingId, setSelectedBookingId] = useState(null);
   const { canCancel, getTimeRemaining } = useCancellationTimer(bookings);
 
   useEffect(() => {
@@ -46,6 +45,29 @@ const MyBookings = () => {
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to cancel booking');
     }
+  };
+
+  const handleDelete = async (bookingId) => {
+    if (!window.confirm('Are you sure you want to delete this booking? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      await api.delete(`/bookings/${bookingId}`);
+      toast.success('Booking deleted successfully');
+      fetchBookings();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to delete booking');
+    }
+  };
+
+  const openFeedbackModal = (bookingId) => {
+    setSelectedBookingId(bookingId);
+    setFeedbackModalOpen(true);
+  };
+
+  const canDelete = (booking) => {
+    return ['completed', 'cancelled_user', 'cancelled_admin'].includes(booking.status?.toLowerCase());
   };
 
   if (loading) {
@@ -138,25 +160,32 @@ const MyBookings = () => {
                       </div>
                     )}
 
-                    {canCancel(booking) && (
-                      <button onClick={() => handleCancel(booking.id)} className="mt-4 bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition flex items-center gap-2">
-                        <FaTimes /> Cancel Booking
-                      </button>
-                    )}
+                    <div className="flex gap-3 mt-4 flex-wrap">
+                      {canCancel(booking) && (
+                        <button onClick={() => handleCancel(booking.id)} className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition flex items-center gap-2">
+                          <FaTimes /> Cancel Booking
+                        </button>
+                      )}
 
-                    {booking.status === 'completed' && !booking.feedback && (
-                      <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                        <p className="text-sm text-blue-800 font-medium mb-2"><FaStar className="inline mr-1" /> Please leave a review for this booking!</p>
-                        <button onClick={() => navigate(`/feedback/${booking.id}`)} className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition text-sm">Submit Feedback</button>
-                      </div>
-                    )}
+                      {booking.status === 'completed' && !booking.feedback && (
+                        <button onClick={() => openFeedbackModal(booking.id)} className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition flex items-center gap-2">
+                          <FaStar /> Submit Feedback
+                        </button>
+                      )}
 
-                    {booking.feedback && (
-                      <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-                        <p className="text-sm text-green-800 font-medium"><FaStar className="inline mr-1 text-yellow-400" /> Your Rating: {booking.feedback.rating}/5</p>
-                        {booking.feedback.comment && <p className="text-sm text-green-700 mt-1">"{booking.feedback.comment}"</p>}
-                      </div>
-                    )}
+                      {booking.feedback && (
+                        <div className="flex-1 p-3 bg-green-50 border border-green-200 rounded-lg">
+                          <p className="text-sm text-green-800 font-medium"><FaStar className="inline mr-1 text-yellow-400" /> Your Rating: {booking.feedback.rating}/5</p>
+                          {booking.feedback.comment && <p className="text-sm text-green-700 mt-1 italic">"{booking.feedback.comment}"</p>}
+                        </div>
+                      )}
+
+                      {canDelete(booking) && (
+                        <button onClick={() => handleDelete(booking.id)} className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition flex items-center gap-2">
+                          <FaTrash /> Delete
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -164,6 +193,13 @@ const MyBookings = () => {
           </div>
         )}
       </div>
+
+      <FeedbackModal
+        isOpen={feedbackModalOpen}
+        onClose={() => setFeedbackModalOpen(false)}
+        bookingId={selectedBookingId}
+        onSuccess={fetchBookings}
+      />
     </div>
   );
 };

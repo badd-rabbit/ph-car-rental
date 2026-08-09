@@ -3,22 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { toast } from 'react-toastify';
-import { FaPhone, FaEnvelope, FaCalendar, FaCheck, FaTimes, FaCheckCircle } from 'react-icons/fa';
+import { FaPhone, FaEnvelope, FaCalendar, FaCheck, FaTimes, FaCheckCircle, FaTrash } from 'react-icons/fa';
+import { getImageUrl, getPlaceholderImage, getStatusColor } from '../utils/helpers';
 import RejectBookingModal from '../components/RejectBookingModal';
-
-const getImageUrl = (url) => {
-  if (!url) return null;
-  if (url.startsWith('http') || url.startsWith('blob:') || url.startsWith('data:')) {
-    return url;
-  }
-  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-  const cleanBaseUrl = baseUrl.replace(/\/$/, '');
-  const cleanUrl = url.startsWith('/') ? url : `/${url}`;
-  return `${cleanBaseUrl}${cleanUrl}`;
-};
-
-const getPlaceholderImage = () =>
-  'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iI2UyZThmMSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjAiIGZpbGw9IiM5Y2EzYWYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5ObyBJbWFnZTwvdGV4dD48L3N2Zz4=';
 
 const AdminBookings = () => {
   const navigate = useNavigate();
@@ -66,6 +53,20 @@ const AdminBookings = () => {
     }
   };
 
+  const handleDelete = async (bookingId) => {
+    if (!window.confirm('Are you sure you want to delete this booking? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      await api.delete(`/bookings/${bookingId}`);
+      toast.success('Booking deleted successfully');
+      fetchBookings();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to delete booking');
+    }
+  };
+
   const openRejectModal = (bookingId) => {
     setSelectedBookingId(bookingId);
     setRejectModalOpen(true);
@@ -82,16 +83,8 @@ const AdminBookings = () => {
     }
   };
 
-  const getStatusColor = (status) => {
-    const colors = {
-      pending: 'bg-yellow-100 text-yellow-800',
-      approved: 'bg-green-100 text-green-800',
-      disapproved: 'bg-red-100 text-red-800',
-      completed: 'bg-blue-100 text-blue-800',
-      cancelled_user: 'bg-gray-100 text-gray-800',
-      cancelled_admin: 'bg-gray-100 text-gray-800'
-    };
-    return colors[status?.toLowerCase()] || 'bg-gray-100 text-gray-800';
+  const canDelete = (booking) => {
+    return ['completed', 'cancelled_user', 'cancelled_admin', 'disapproved'].includes(booking.status?.toLowerCase());
   };
 
   const filteredBookings = bookings.filter(booking => {
@@ -118,12 +111,7 @@ const AdminBookings = () => {
       <nav className="bg-primary text-white shadow-md">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
           <h1 className="text-xl font-bold">PH Car Rental Admin</h1>
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="bg-white text-primary px-4 py-1 rounded text-sm hover:bg-gray-100 transition"
-          >
-            ← Back to Dashboard
-          </button>
+          <button onClick={() => navigate('/dashboard')} className="bg-white text-primary px-4 py-1 rounded text-sm hover:bg-gray-100 transition">← Back to Dashboard</button>
         </div>
       </nav>
 
@@ -137,9 +125,7 @@ const AdminBookings = () => {
                 key={status}
                 onClick={() => setStatusFilter(status)}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                  statusFilter === status 
-                    ? 'bg-primary text-white' 
-                    : 'bg-white text-textDark border hover:bg-gray-100'
+                  statusFilter === status ? 'bg-primary text-white' : 'bg-white text-textDark border hover:bg-gray-100'
                 }`}
               >
                 {status === 'all' ? 'All Bookings' : status.charAt(0).toUpperCase() + status.slice(1)}
@@ -158,31 +144,16 @@ const AdminBookings = () => {
               <div key={booking.id} className="bg-white rounded-lg shadow-md p-6">
                 <div className="flex flex-col lg:flex-row gap-6">
                   <div className="lg:w-1/4">
-                    <img
-                      src={getImageUrl(booking.car?.images?.[0]) || getPlaceholderImage()}
-                      alt={`${booking.car?.make} ${booking.car?.model}`}
-                      className="w-full h-48 object-cover rounded-lg"
-                      onError={(e) => {
-                        if (e.target.src !== getPlaceholderImage()) {
-                          e.target.src = getPlaceholderImage();
-                        }
-                      }}
-                    />
+                    <img src={getImageUrl(booking.car?.images?.[0]) || getPlaceholderImage()} alt={`${booking.car?.make} ${booking.car?.model}`} className="w-full h-48 object-cover rounded-lg" onError={(e) => { if (e.target.src !== getPlaceholderImage()) e.target.src = getPlaceholderImage(); }} />
                   </div>
 
                   <div className="flex-1">
                     <div className="flex justify-between items-start mb-4">
                       <div>
-                        <h3 className="text-xl font-bold text-primary">
-                          {booking.car?.make} {booking.car?.model} ({booking.car?.year})
-                        </h3>
-                        <p className="text-textLight text-sm mt-1">
-                          {booking.car?.color} • {booking.car?.seat_number} Seats
-                        </p>
+                        <h3 className="text-xl font-bold text-primary">{booking.car?.make} {booking.car?.model} ({booking.car?.year})</h3>
+                        <p className="text-textLight text-sm mt-1">{booking.car?.color} • {booking.car?.seat_number} Seats</p>
                       </div>
-                      <span className={`px-3 py-1 rounded-full text-sm font-bold ${getStatusColor(booking.status)}`}>
-                        {booking.status?.toUpperCase().replace('_', ' ')}
-                      </span>
+                      <span className={`px-3 py-1 rounded-full text-sm font-bold ${getStatusColor(booking.status)}`}>{booking.status?.toUpperCase().replace('_', ' ')}</span>
                     </div>
 
                     <div className="bg-gray-50 rounded-lg p-4 mb-4">
@@ -217,23 +188,15 @@ const AdminBookings = () => {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                       <div>
                         <p className="text-xs text-textLight">Start Date</p>
-                        <p className="text-sm font-medium text-textDark">
-                          {new Date(booking.start_date).toLocaleString()}
-                        </p>
+                        <p className="text-sm font-medium text-textDark">{new Date(booking.start_date).toLocaleString()}</p>
                       </div>
-
                       <div>
                         <p className="text-xs text-textLight">End Date</p>
-                        <p className="text-sm font-medium text-textDark">
-                          {new Date(booking.end_date).toLocaleString()}
-                        </p>
+                        <p className="text-sm font-medium text-textDark">{new Date(booking.end_date).toLocaleString()}</p>
                       </div>
-
                       <div>
                         <p className="text-xs text-textLight">Total Price</p>
-                        <p className="text-lg font-bold text-secondary">
-                          {booking.total_price ? booking.total_price.toLocaleString() : '0'}
-                        </p>
+                        <p className="text-lg font-bold text-secondary">{booking.total_price ? booking.total_price.toLocaleString() : '0'}</p>
                       </div>
                     </div>
 
@@ -244,31 +207,27 @@ const AdminBookings = () => {
                       </div>
                     )}
 
-                    {/* Action Buttons */}
-                    <div className="flex gap-3">
+                    <div className="flex gap-3 flex-wrap">
                       {booking.status === 'pending' && (
                         <>
-                          <button
-                            onClick={() => handleApprove(booking.id)}
-                            className="flex-1 bg-green-500 text-white py-2 rounded-lg hover:bg-green-600 transition flex items-center justify-center gap-2"
-                          >
-                            <FaCheck /> Approve Booking
+                          <button onClick={() => handleApprove(booking.id)} className="flex-1 bg-green-500 text-white py-2 rounded-lg hover:bg-green-600 transition flex items-center justify-center gap-2">
+                            <FaCheck /> Approve
                           </button>
-                          <button
-                            onClick={() => openRejectModal(booking.id)}
-                            className="flex-1 bg-red-500 text-white py-2 rounded-lg hover:bg-red-600 transition flex items-center justify-center gap-2"
-                          >
-                            <FaTimes /> Reject Booking
+                          <button onClick={() => openRejectModal(booking.id)} className="flex-1 bg-red-500 text-white py-2 rounded-lg hover:bg-red-600 transition flex items-center justify-center gap-2">
+                            <FaTimes /> Reject
                           </button>
                         </>
                       )}
 
                       {booking.status === 'approved' && (
-                        <button
-                          onClick={() => handleComplete(booking.id)}
-                          className="flex-1 bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition flex items-center justify-center gap-2"
-                        >
+                        <button onClick={() => handleComplete(booking.id)} className="flex-1 bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition flex items-center justify-center gap-2">
                           <FaCheckCircle /> Mark as Complete
+                        </button>
+                      )}
+
+                      {canDelete(booking) && (
+                        <button onClick={() => handleDelete(booking.id)} className="flex-1 bg-gray-500 text-white py-2 rounded-lg hover:bg-gray-600 transition flex items-center justify-center gap-2">
+                          <FaTrash /> Delete
                         </button>
                       )}
                     </div>

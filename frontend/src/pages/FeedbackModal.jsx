@@ -1,16 +1,15 @@
 import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { FaStar, FaTimes } from 'react-icons/fa';
 import api from '../services/api';
 import { toast } from 'react-toastify';
-import { FaStar, FaArrowLeft } from 'react-icons/fa';
 
-const Feedback = () => {
-  const { bookingId } = useParams();
-  const navigate = useNavigate();
+const FeedbackModal = ({ isOpen, onClose, bookingId, onSuccess }) => {
   const [rating, setRating] = useState(0);
   const [hover, setHover] = useState(0);
   const [comment, setComment] = useState('');
   const [loading, setLoading] = useState(false);
+
+  if (!isOpen) return null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -27,7 +26,10 @@ const Feedback = () => {
         comment
       });
       toast.success('Feedback submitted successfully!');
-      navigate('/my-bookings');
+      setRating(0);
+      setComment('');
+      onSuccess();
+      onClose();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to submit feedback');
     } finally {
@@ -36,16 +38,16 @@ const Feedback = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
-        <div className="bg-primary text-white p-6 rounded-t-lg flex items-center gap-3">
-          <button onClick={() => navigate('/my-bookings')} className="hover:bg-blue-800 p-1 rounded transition">
-            <FaArrowLeft />
-          </button>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-2xl w-full max-w-md">
+        <div className="bg-primary text-white p-4 rounded-t-lg flex justify-between items-center">
           <div>
             <h2 className="text-xl font-bold">Submit Feedback</h2>
             <p className="text-sm text-blue-200">How was your experience?</p>
           </div>
+          <button onClick={onClose} className="text-white hover:bg-blue-800 p-2 rounded transition">
+            <FaTimes />
+          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
@@ -91,7 +93,7 @@ const Feedback = () => {
           <div className="flex gap-3">
             <button
               type="button"
-              onClick={() => navigate('/my-bookings')}
+              onClick={onClose}
               className="flex-1 bg-gray-200 text-gray-700 py-2.5 rounded-lg hover:bg-gray-300 transition font-medium"
             >
               Cancel
@@ -110,4 +112,4 @@ const Feedback = () => {
   );
 };
 
-export default Feedback;
+export default FeedbackModal;

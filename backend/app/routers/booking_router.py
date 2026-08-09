@@ -323,3 +323,29 @@ def get_all_feedback(db: Session = Depends(get_db)):
             "created_date": booking.end_date if booking else None
         })
     return result
+
+
+@router.delete("/{booking_id}")
+def delete_booking(booking_id: int, db: Session = Depends(get_db),
+                   current_user: User = Depends(get_current_user)):
+    booking = db.query(Booking).filter(Booking.id == booking_id).first()
+    if not booking: raise HTTPException(status_code=404, detail="Booking not found")
+
+    # Check authorization
+    if current_user.role == Role.RENTER:
+        if booking.user_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Not authorized")
+        # Renters can only delete their completed or cancelled bookings
+        if booking.status not in [BookingStatus.COMPLETED, BookingStatus.CANCELLED_USER, BookingStatus.CANCELLED_ADMIN]:
+            raise HTTPException(status_code=400, detail="Can only delete completed or cancelled bookings")
+    elif current_user.role in [Role.SUPER_ADMIN, Role.STAFF]:
+        # Admins can delete completed, cancelled, or disapproved bookings
+        if booking.status not in [BookingStatus.COMPLETED, BookingStatus.CANCELLED_USER, BookingStatus.CANCELLED_ADMIN,
+                                  BookingStatus.DISAPPROVED]:
+            raise HTTPException(status_code=400, detail="Can only delete completed, cancelled, or disapproved bookings")
+    else:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    db.delete(booking)
+    db.commit()
+    return {"message": "Booking deleted successfully"}

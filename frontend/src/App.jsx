@@ -16,7 +16,7 @@ import LandingPage from './pages/LandingPage';
 import About from './pages/About';
 import FAQ from './pages/FAQ';
 import Reviews from './pages/Reviews';
-import Feedback from './pages/Feedback';
+
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, loading } = useAuth();
@@ -55,7 +55,6 @@ const AppRoutes = () => {
         <Route path="/admin-bookings" element={<ProtectedRoute allowedRoles={['super_admin', 'staff']}><AdminBookings /></ProtectedRoute>} />
         <Route path="/manage-staff" element={<ProtectedRoute allowedRoles={['super_admin']}><ManageStaff /></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-        <Route path="/feedback/:bookingId" element={<Feedback />} />
       </Routes>
 
       {showChatbot && <Chatbot />}

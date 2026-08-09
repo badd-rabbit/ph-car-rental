@@ -2,9 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { toast } from 'react-toastify';
-import { FaCalendar, FaCar, FaClock} from 'react-icons/fa';
+import { FaCalendar, FaCar, FaClock } from 'react-icons/fa';
 
-// Helper to fix image URLs for production and local development
 const getImageUrl = (url) => {
   if (!url) return null;
   if (url.startsWith('http') || url.startsWith('blob:') || url.startsWith('data:')) {
@@ -16,7 +15,6 @@ const getImageUrl = (url) => {
   return `${cleanBaseUrl}${cleanUrl}`;
 };
 
-// Inline SVG placeholder to prevent infinite 404 loops
 const getPlaceholderImage = () =>
   'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iI2UyZThmMSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjAiIGZpbGw9IiM5Y2EzYWYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5ObyBJbWFnZTwvdGV4dD48L3N2Zz4=';
 
@@ -146,7 +144,7 @@ const MyBookings = () => {
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                       <div className="flex items-start gap-2">
                         <FaCalendar className="text-primary mt-1" />
                         <div>
@@ -166,27 +164,27 @@ const MyBookings = () => {
                           </p>
                         </div>
                       </div>
-
-                      <div className="flex items-start gap-2">
-                        <div>
-                          <p className="text-xs text-textLight">Total Price</p>
-                          <p className="text-sm font-bold text-secondary">
-                            ₱{booking.total_price?.toLocaleString()}
-                          </p>
-                        </div>
-                      </div>
                     </div>
 
-                    {booking.payment_method && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                       <div className="flex items-start gap-2">
                         <div>
                           <p className="text-xs text-textLight">Total Price</p>
-                          <p className="text-sm font-bold text-secondary">
-                            ₱{booking.total_price?.toLocaleString()}
+                          <p className="text-lg font-bold text-secondary">
+                            ₱{booking.total_price ? booking.total_price.toLocaleString() : '0'}
                           </p>
                         </div>
                       </div>
-                    )}
+
+                      {booking.payment_method && (
+                        <div className="flex items-start gap-2">
+                          <div>
+                            <p className="text-xs text-textLight">Payment Method</p>
+                            <p className="text-sm font-medium text-textDark capitalize">{booking.payment_method}</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { toast } from 'react-toastify';
-import { FaPhone, FaEnvelope, FaCalendar, FaCheck, FaTimes, FaClock } from 'react-icons/fa';
+import { FaPhone, FaEnvelope, FaCalendar, FaCheck, FaTimes } from 'react-icons/fa';
 
 const getImageUrl = (url) => {
   if (!url) return null;
@@ -146,7 +146,7 @@ const AdminBookings = () => {
                           <FaEnvelope className="text-primary" />
                           <div>
                             <p className="text-xs text-textLight">Email</p>
-                            <p className="text-sm font-medium">{booking.user?.email}</p>
+                            <p className="text-sm font-medium">{booking.user?.email || 'N/A'}</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
@@ -156,62 +156,52 @@ const AdminBookings = () => {
                             <p className="text-sm font-medium">{booking.user?.mobile_number || 'N/A'}</p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center text-white text-xs font-bold">
+                        <div className="flex items-center gap-2 md:col-span-2">
+                          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white font-bold">
                             {booking.user?.full_name?.charAt(0) || 'U'}
                           </div>
                           <div>
                             <p className="text-xs text-textLight">Full Name</p>
-                            <p className="text-sm font-medium">{booking.user?.full_name}</p>
+                            <p className="text-sm font-medium">{booking.user?.full_name || 'N/A'}</p>
                           </div>
                         </div>
                       </div>
                     </div>
 
-                    {/* Booking Details Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="flex items-start gap-2">
-                        <FaCalendar className="text-primary mt-1" />
-                        <div>
-                          <p className="text-xs text-textLight">Start Date</p>
-                          <p className="text-sm font-medium text-textDark">
-                            {new Date(booking.start_date).toLocaleString()}
-                          </p>
-                        </div>
+                    {/* Booking Details */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                      <div>
+                        <p className="text-xs text-textLight">Start Date</p>
+                        <p className="text-sm font-medium text-textDark">
+                          {new Date(booking.start_date).toLocaleString()}
+                        </p>
                       </div>
 
-                      <div className="flex items-start gap-2">
-                        <FaCalendar className="text-primary mt-1" />
-                        <div>
-                          <p className="text-xs text-textLight">End Date</p>
-                          <p className="text-sm font-medium text-textDark">
-                            {new Date(booking.end_date).toLocaleString()}
-                          </p>
-                        </div>
+                      <div>
+                        <p className="text-xs text-textLight">End Date</p>
+                        <p className="text-sm font-medium text-textDark">
+                          {new Date(booking.end_date).toLocaleString()}
+                        </p>
                       </div>
 
-                      <div className="flex items-start gap-2">
-                        <div>
-                          <p className="text-xs text-textLight">Total Price</p>
-                          <p className="text-sm font-bold text-secondary">
-                            ₱{booking.total_price?.toLocaleString()}
-                          </p>
-                        </div>
+                      <div>
+                        <p className="text-xs text-textLight">Total Price</p>
+                        <p className="text-lg font-bold text-secondary">
+                          ₱{booking.total_price ? booking.total_price.toLocaleString() : '0'}
+                        </p>
                       </div>
                     </div>
 
                     {booking.payment_method && (
-                      <div className="mt-4 flex items-center gap-2">
-                        <div>
-                          <p className="text-xs text-textLight">Payment Method</p>
-                          <p className="text-sm font-medium text-textDark">{booking.payment_method}</p>
-                        </div>
+                      <div className="mb-4">
+                        <p className="text-xs text-textLight">Payment Method</p>
+                        <p className="text-sm font-medium text-textDark capitalize">{booking.payment_method}</p>
                       </div>
                     )}
 
                     {/* Action Buttons */}
                     {booking.status === 'pending' && (
-                      <div className="flex gap-3 mt-6">
+                      <div className="flex gap-3">
                         <button
                           onClick={() => handleApprove(booking.id)}
                           className="flex-1 bg-green-500 text-white py-2 rounded-lg hover:bg-green-600 transition flex items-center justify-center gap-2"

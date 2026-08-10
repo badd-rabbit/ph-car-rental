@@ -15,14 +15,14 @@ const MyBookings = () => {
   const { user, setNotificationCount } = useAuth();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [cancelModalOpen, setCancelModalOpen] = useState(false);
-  const [isCancelling, setIsCancelling] = useState(false);
 
   // Modal States
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [selectedBookingId, setSelectedBookingId] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   const { canCancel, getTimeRemaining } = useCancellationTimer(bookings);
 
@@ -43,7 +43,6 @@ const MyBookings = () => {
     }
   };
 
-   // Replace handleCancel function:
   const openCancelModal = (bookingId) => {
     setSelectedBookingId(bookingId);
     setCancelModalOpen(true);
@@ -62,7 +61,7 @@ const MyBookings = () => {
     } finally {
       setIsCancelling(false);
     }
-};
+  };
 
   const openDeleteModal = (bookingId) => {
     setSelectedBookingId(bookingId);
@@ -177,6 +176,7 @@ const MyBookings = () => {
                       )}
                     </div>
 
+                    {/* 3-Minute Timer - Only show if within 3 minutes of creation */}
                     {canCancel(booking) && booking.status !== 'pending' && (
                       <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                         <p className="text-sm text-yellow-800 font-medium">⏰ Cancellation window: {getTimeRemaining(booking)} remaining</p>
@@ -184,6 +184,7 @@ const MyBookings = () => {
                     )}
 
                     <div className="flex gap-3 mt-4 flex-wrap">
+                      {/* Cancel Button - Only show if within 3 minutes */}
                       {canCancel(booking) && (
                         <button onClick={() => openCancelModal(booking.id)} className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition flex items-center gap-2">
                           <FaTimes /> Cancel Booking
@@ -217,6 +218,7 @@ const MyBookings = () => {
         )}
       </div>
 
+      {/* Feedback Modal */}
       <FeedbackModal
         isOpen={feedbackModalOpen}
         onClose={() => setFeedbackModalOpen(false)}
@@ -224,6 +226,7 @@ const MyBookings = () => {
         onSuccess={fetchBookings}
       />
 
+      {/* Delete Confirmation Modal */}
       <DeleteConfirmModal
         isOpen={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
@@ -231,6 +234,7 @@ const MyBookings = () => {
         itemName="this booking"
       />
 
+      {/* Cancel Booking Modal */}
       <CancelBookingModal
         isOpen={cancelModalOpen}
         onClose={() => setCancelModalOpen(false)}

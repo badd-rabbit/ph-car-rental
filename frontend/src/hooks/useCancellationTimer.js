@@ -9,22 +9,23 @@ export const useCancellationTimer = (bookings) => {
   }, []);
 
   const canCancel = (booking) => {
+    // Always allow cancellation if pending
     if (booking.status === 'pending') return true;
-    if (booking.status === 'approved' && booking.start_date) {
-      const startDate = new Date(booking.start_date);
-      // FIX: Only allow cancellation BEFORE start_date + 3 minutes
-      const deadline = new Date(startDate.getTime() + 3 * 60 * 1000);
-      return now < deadline;
+
+    // If approved, check if within 3 minutes of CREATION time (not start_date!)
+    if (booking.created_at) {
+      const created = new Date(booking.created_at);
+      const diffMinutes = (now - created) / 60000;
+      return diffMinutes <= 3;
     }
+
     return false;
   };
 
   const getTimeRemaining = (booking) => {
-    if (!booking.start_date) return '0:00';
-    const startDate = new Date(booking.start_date);
-    const deadline = new Date(startDate.getTime() + 3 * 60 * 1000);
-    const diffMs = deadline - now;
-
+    if (!booking.created_at) return '0:00';
+    const created = new Date(booking.created_at);
+    const diffMs = 3 * 60 * 1000 - (now - created);
     if (diffMs <= 0) return '0:00';
     const minutes = Math.floor(diffMs / 60000);
     const seconds = Math.floor((diffMs % 60000) / 1000);

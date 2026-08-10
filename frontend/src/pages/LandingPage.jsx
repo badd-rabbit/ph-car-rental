@@ -1,10 +1,44 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaBars, FaTimes, FaCar, FaClock, FaShieldAlt, FaMoneyBillWave, FaStar } from 'react-icons/fa';
+import api from '../services/api';
+import { toast } from 'react-toastify';
 
 const LandingPage = () => {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [cars, setCars] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchCars();
+  }, []);
+
+  const fetchCars = async () => {
+    try {
+      const res = await api.get('/cars/');
+      setCars(res.data);
+    } catch (error) {
+      console.error('Error fetching cars:', error);
+      toast.error('Failed to load cars');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getImageUrl = (url) => {
+    if (!url) return null;
+    if (url.startsWith('http') || url.startsWith('blob:') || url.startsWith('data:')) {
+      return url;
+    }
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const cleanBaseUrl = baseUrl.replace(/\/$/, '');
+    const cleanUrl = url.startsWith('/') ? url : `/${url}`;
+    return `${cleanBaseUrl}${cleanUrl}`;
+  };
+
+  const getPlaceholderImage = () =>
+    'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iI2UyZThmMSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjAiIGZpbGw9IiM5Y2EzYWYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5ObyBJbWFnZTwvdGV4dD48L3N2Zz4=';
 
   const features = [
     {
@@ -29,13 +63,23 @@ const LandingPage = () => {
     }
   ];
 
+  const renderRating = (rating, count) => {
+    if (count === 0 || rating === 0) return <span className="text-gray-400 text-sm italic">Not yet Rated</span>;
+    return (
+      <div className="flex items-center gap-1 mt-1">
+        <FaStar className="text-yellow-400" />
+        <span className="text-sm font-bold text-gray-800">{rating.toFixed(1)}</span>
+        <span className="text-xs text-gray-500">({count} reviews)</span>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Mobile-Responsive Navbar */}
       <nav className="bg-primary text-white shadow-md fixed top-0 left-0 right-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex justify-between items-center py-4">
-            {/* Logo */}
             <div
               className="flex items-center gap-2 cursor-pointer"
               onClick={() => navigate('/')}
@@ -44,7 +88,6 @@ const LandingPage = () => {
               <span className="text-lg sm:text-xl font-bold">PH Car Rental</span>
             </div>
 
-            {/* Desktop Navigation */}
             <div className="hidden md:flex items-center gap-6">
               <button onClick={() => navigate('/')} className="text-orange-400 font-medium hover:text-orange-300 transition">
                 Home
@@ -66,7 +109,6 @@ const LandingPage = () => {
               </button>
             </div>
 
-            {/* Mobile Menu Button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="md:hidden p-2 rounded-lg hover:bg-blue-800 transition"
@@ -77,7 +119,6 @@ const LandingPage = () => {
           </div>
         </div>
 
-        {/* Mobile Menu Dropdown */}
         {mobileMenuOpen && (
           <div className="md:hidden bg-white border-t border-blue-800">
             <div className="px-4 py-3 space-y-2">
@@ -116,7 +157,6 @@ const LandingPage = () => {
         )}
       </nav>
 
-      {/* Spacer for fixed navbar */}
       <div className="h-16 sm:h-20" />
 
       {/* Hero Section */}
@@ -138,7 +178,7 @@ const LandingPage = () => {
       </section>
 
       {/* Features Section */}
-      <section className="py-12 sm:py-16">
+      <section className="py-12 sm:py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
             {features.map((feature, index) => (
@@ -146,11 +186,88 @@ const LandingPage = () => {
                 <div className="flex justify-center mb-4">
                   {feature.icon}
                 </div>
-                <h3 className="text-lg sm:text-xl font-bold text-textDark mb-2">{feature.title}</h3>
-                <p className="text-sm sm:text-base text-textLight">{feature.description}</p>
+                <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">{feature.title}</h3>
+                <p className="text-sm sm:text-base text-gray-600">{feature.description}</p>
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Available Cars Section */}
+      <section className="py-12 sm:py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-8 sm:mb-12">
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3 sm:mb-4">Our Available Cars</h2>
+            <p className="text-base sm:text-lg text-gray-600">Choose from our wide selection of quality vehicles</p>
+          </div>
+
+          {loading ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading cars...</p>
+            </div>
+          ) : cars.length === 0 ? (
+            <div className="bg-white rounded-lg shadow-md p-8 sm:p-12 text-center">
+              <FaCar className="text-6xl text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-500 text-lg">No cars available at the moment</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+              {cars.filter(car => car.status === 'available').slice(0, 6).map((car) => (
+                <div key={car.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 flex flex-col">
+                  <div className="h-48 bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center text-primary relative overflow-hidden">
+                    {car.images && car.images.length > 0 && getImageUrl(car.images[0]) ? (
+                      <img
+                        src={getImageUrl(car.images[0]) || getPlaceholderImage()}
+                        alt={`${car.make} ${car.model}`}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          if (e.target.src !== getPlaceholderImage()) {
+                            e.target.src = getPlaceholderImage();
+                          }
+                        }}
+                      />
+                    ) : (
+                      <span className="text-6xl">🚗</span>
+                    )}
+                    <span className="absolute top-2 right-2 px-2 py-1 rounded text-xs font-bold bg-green-500 text-white">
+                      AVAILABLE
+                    </span>
+                  </div>
+
+                  <div className="p-4 sm:p-6 flex-1 flex flex-col">
+                    <h3 className="text-lg sm:text-xl font-bold text-primary">{car.make} {car.model}</h3>
+                    <p className="text-gray-600 text-sm mt-1">{car.year} • {car.color} • {car.seat_number} Seats</p>
+                    <div className="flex gap-2 mt-2 flex-wrap">
+                      <span className="bg-blue-50 text-primary text-xs px-2 py-1 rounded">{car.car_type}</span>
+                      <span className="bg-orange-50 text-secondary text-xs px-2 py-1 rounded">{car.fuel_type}</span>
+                    </div>
+                    {renderRating(car.average_rating, car.review_count)}
+                    <p className="text-secondary font-bold text-lg mt-3">₱{car.price_per_day.toLocaleString()} / day</p>
+
+                    <button
+                      onClick={() => navigate('/login')}
+                      className="w-full mt-auto bg-primary text-white py-2 rounded-lg hover:bg-blue-800 transition"
+                    >
+                      Book Now
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {cars.length > 6 && (
+            <div className="text-center mt-8">
+              <button
+                onClick={() => navigate('/login')}
+                className="bg-secondary text-white px-6 sm:px-8 py-3 rounded-lg font-bold hover:bg-orange-600 transition"
+              >
+                View All Cars
+              </button>
+            </div>
+          )}
         </div>
       </section>
 

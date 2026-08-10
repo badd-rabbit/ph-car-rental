@@ -1,11 +1,34 @@
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, EmailStr, Field, model_validator
 from typing import Optional, List, Any
 from datetime import datetime
 from enum import Enum
 import json
 
-# ... (keep your User, Booking, etc. schemas as they are) ...
+# --- User Schemas ---
+class UserBase(BaseModel):
+    email: EmailStr
+    full_name: str
+    mobile_number: str
 
+class UserCreate(UserBase):
+    password: str
+
+class UserResponse(UserBase):
+    id: int
+    role: str
+
+    class Config:
+        from_attributes = True
+
+# --- Auth Schemas ---
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class TokenData(BaseModel):
+    email: Optional[str] = None
+
+# --- Car Schemas ---
 class CarCreate(BaseModel):
     make: str
     model: str
@@ -39,37 +62,14 @@ class CarResponse(BaseModel):
     price_per_day: float
     car_type: str
     fuel_type: str
-    images: Any  # We will parse this in the validator
+    images: Any
     status: str
     average_rating: float = 0.0
     review_count: int = 0
 
-    class BookingCreate(BaseModel):
-        car_id: int
-        start_date: datetime
-        end_date: datetime
-        payment_method: str
-
-    class FeedbackCreate(BaseModel):
-        booking_id: int
-        rating: int
-        comment: Optional[str] = None
-
-    class FeedbackResponse(BaseModel):
-        id: int
-        booking_id: int
-        car_id: int
-        rating: int
-        comment: Optional[str]
-        created_at: Optional[datetime]
-
-        class Config:
-            from_attributes = True
-
     @model_validator(mode='before')
     @classmethod
     def parse_images(cls, data: Any) -> Any:
-        # Automatically convert JSON string from DB into a Python List
         if isinstance(data, dict):
             images = data.get("images")
             if isinstance(images, str):
@@ -80,6 +80,49 @@ class CarResponse(BaseModel):
             elif images is None:
                 data["images"] = []
         return data
+
+    class Config:
+        from_attributes = True
+
+# --- Booking Schemas ---
+class BookingCreate(BaseModel):
+    car_id: int
+    start_date: datetime
+    end_date: datetime
+    payment_method: str
+
+class BookingResponse(BaseModel):
+    id: int
+    car_id: int
+    user_id: int
+    start_date: datetime
+    end_date: datetime
+    status: str
+    payment_method: str
+    total_price: Optional[float] = None
+    cancellation_reason: Optional[str] = None
+    approved_at: Optional[datetime] = None
+    created_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+class BookingWithCarResponse(BookingResponse):
+    car: CarResponse
+
+# --- Feedback Schemas ---
+class FeedbackCreate(BaseModel):
+    booking_id: int
+    rating: int
+    comment: Optional[str] = None
+
+class FeedbackResponse(BaseModel):
+    id: int
+    booking_id: int
+    car_id: int
+    rating: int
+    comment: Optional[str]
+    created_at: Optional[datetime]
 
     class Config:
         from_attributes = True

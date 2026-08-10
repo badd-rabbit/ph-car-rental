@@ -8,10 +8,13 @@ const LandingPage = () => {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [cars, setCars] = useState([]);
+  const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [reviewsLoading, setReviewsLoading] = useState(true);
 
   useEffect(() => {
     fetchCars();
+    fetchReviews();
   }, []);
 
   const fetchCars = async () => {
@@ -23,6 +26,20 @@ const LandingPage = () => {
       toast.error('Failed to load cars');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchReviews = async () => {
+    try {
+      const res = await api.get('/bookings/feedback/all');
+      // Get unique reviews (one per booking) and limit to 6 for landing page
+      const uniqueReviews = res.data.slice(0, 6);
+      setReviews(uniqueReviews);
+    } catch (error) {
+      console.error('Error fetching reviews:', error);
+      // Don't show error toast for reviews - it's not critical
+    } finally {
+      setReviewsLoading(false);
     }
   };
 
@@ -60,52 +77,6 @@ const LandingPage = () => {
       icon: <FaMoneyBillWave className="text-4xl text-primary" />,
       title: 'Affordable Rates',
       description: 'Competitive pricing for all budgets'
-    }
-  ];
-
-  // Sample testimonials - in production, fetch from API
-  const testimonials = [
-    {
-      name: 'Maria Santos',
-      role: 'Frequent Traveler',
-      rating: 5,
-      comment: 'Excellent service! The car was clean and well-maintained. The booking process was smooth and the staff was very accommodating. Highly recommended!',
-      location: 'Manila'
-    },
-    {
-      name: 'Juan Dela Cruz',
-      role: 'Business Traveler',
-      rating: 5,
-      comment: 'Best car rental experience I have had in the Philippines. Great rates, professional service, and the vehicle was in perfect condition. Will definitely book again!',
-      location: 'Cebu'
-    },
-    {
-      name: 'Sarah Johnson',
-      role: 'Tourist',
-      rating: 5,
-      comment: 'As a tourist, I was worried about renting a car, but PH Car Rental made it so easy! The online booking was simple and the pickup was hassle-free. Thank you!',
-      location: 'Davao'
-    },
-    {
-      name: 'Roberto Reyes',
-      role: 'Local Renter',
-      rating: 4,
-      comment: 'Very reliable service. I have rented from them multiple times for family trips. The cars are always clean and the prices are reasonable. Great job!',
-      location: 'Quezon City'
-    },
-    {
-      name: 'Emily Chen',
-      role: 'Adventure Seeker',
-      rating: 5,
-      comment: 'Rented an SUV for our Baguio trip and it was perfect! The vehicle handled the mountain roads excellently. Customer service was top-notch. Five stars!',
-      location: 'Makati'
-    },
-    {
-      name: 'Miguel Torres',
-      role: 'Regular Customer',
-      rating: 5,
-      comment: 'I have been using PH Car Rental for over a year now for both personal and business trips. Consistent quality and service. They never disappoint!',
-      location: 'Pasig'
     }
   ];
 
@@ -288,7 +259,7 @@ const LandingPage = () => {
                         }}
                       />
                     ) : (
-                      <span className="text-6xl">🚗</span>
+                      <span className="text-6xl"></span>
                     )}
                     <span className="absolute top-2 right-2 px-2 py-1 rounded text-xs font-bold bg-green-500 text-white">
                       AVAILABLE
@@ -330,32 +301,62 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Reviews/Testimonials Section */}
+      {/* Reviews/Testimonials Section - Using Real Feedback */}
       <section className="py-12 sm:py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-8 sm:mb-12">
             <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3 sm:mb-4">What Our Customers Say</h2>
-            <p className="text-base sm:text-lg text-gray-600">Real reviews from satisfied renters</p>
+            <p className="text-base sm:text-lg text-gray-600">Real reviews from our valued renters</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-            {testimonials.map((testimonial, index) => (
-              <div key={index} className="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition">
-                <div className="flex items-center gap-2 mb-4">
-                  <FaQuoteLeft className="text-primary text-2xl" />
-                  <div className="flex-1">
-                    {renderStars(testimonial.rating)}
+          {reviewsLoading ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading reviews...</p>
+            </div>
+          ) : reviews.length === 0 ? (
+            <div className="bg-white rounded-lg shadow-md p-8 sm:p-12 text-center">
+              <FaQuoteLeft className="text-6xl text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-500 text-lg mb-4">No reviews yet. Be the first to share your experience!</p>
+              <button
+                onClick={() => navigate('/login')}
+                className="bg-primary text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-800 transition"
+              >
+                Book a Car Now
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+              {reviews.map((review, index) => (
+                <div key={index} className="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition">
+                  <div className="flex items-center gap-2 mb-4">
+                    <FaQuoteLeft className="text-primary text-2xl" />
+                    <div className="flex-1">
+                      {renderStars(review.rating)}
+                    </div>
+                  </div>
+                  <p className="text-gray-700 mb-4 italic leading-relaxed">
+                    "{review.comment}"
+                  </p>
+                  <div className="border-t border-gray-200 pt-4">
+                    <p className="font-bold text-gray-900">{review.renter_name || 'Valued Customer'}</p>
+                    <p className="text-sm text-gray-600">
+                      {review.car_make} {review.car_model}
+                    </p>
+                    {review.created_date && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        📅 {new Date(review.created_date).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}
+                      </p>
+                    )}
                   </div>
                 </div>
-                <p className="text-gray-700 mb-4 italic leading-relaxed">"{testimonial.comment}"</p>
-                <div className="border-t border-gray-200 pt-4">
-                  <p className="font-bold text-gray-900">{testimonial.name}</p>
-                  <p className="text-sm text-gray-600">{testimonial.role}</p>
-                  <p className="text-xs text-gray-500 mt-1">📍 {testimonial.location}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
           <div className="text-center mt-8">
             <button

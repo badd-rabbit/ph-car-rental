@@ -1,59 +1,75 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
-import json
+import cloudinary
+import cloudinary.uploader
+from dotenv import load_dotenv
 import os
-import uuid
+import json
+
 from app.database import get_db
-from app.models import Car, Role, Feedback, CarType, FuelType, CarStatus
-from app.schemas import CarCreate, CarResponse, CarUpdate
-from app.auth import require_role
+from app.models import Car, CarStatus, CarType, FuelType
+from app.schemas import CarCreate, CarUpdate, CarResponse
+from app.auth import require_role, get_current_user, Role
+
+load_dotenv()
 
 router = APIRouter(prefix="/cars", tags=["Cars"])
 
-# Allowed file types and max size (5MB)
-ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
-MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+# Configure Cloudinary
+cloudinary.config(
+    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
+    api_key=os.getenv("CLOUDINARY_API_KEY"),
+    api_secret=os.getenv("CLOUDINARY_API_SECRET")
+)
 
 
-def get_uploads_dir():
-    return os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "uploads")
-
-
-# Upload endpoint - must be defined BEFORE other routes with {car_id}
 @router.post("/upload-image")
 async def upload_image(file: UploadFile = File(...)):
-    # Validate file type
-    file_ext = os.path.splitext(file.filename)[1].lower()
-    if file_ext not in ALLOWED_EXTENSIONS:
-        raise HTTPException(status_code=400, detail=f"Invalid file type. Allowed: {', '.join(ALLOWED_EXTENSIONS)}")
+    """
+    Upload image to Cloudinary and return the secure URL.
+    This ensures images persist even after server restarts.
+    """
+    try:
+        if not file:
+            raise HTTPException(status_code=400, detail="No file provided")
 
-    # Validate file size
-    content = await file.read()
-    if len(content) > MAX_FILE_SIZE:
-        raise HTTPException(status_code=400, detail="File too large. Maximum size is 5MB")
+        # Validate file type
+        allowed_types = ["image/jpeg", "image/jpg", "image/png", "image/webp"]
+        if file.content_type not in allowed_types:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid file type. Allowed types: {', '.join(allowed_types)}"
+            )
 
-    # Generate unique filename
-    unique_filename = f"{uuid.uuid4().hex}{file_ext}"
-    uploads_dir = get_uploads_dir()
-    os.makedirs(uploads_dir, exist_ok=True)
-    file_path = os.path.join(uploads_dir, unique_filename)
+        # Upload to Cloudinary
+        upload_result = cloudinary.uploader.upload(
+            file.file,
+            folder="ph_car_rental",
+            resource_type="image",
+            use_filename=True,
+            unique_filename=True
+        )
 
-    # Save file
-    with open(file_path, "wb") as f:
-        f.write(content)
-
-    # Return accessible URL
-    file_url = f"/uploads/{unique_filename}"
-    return {"url": file_url, "filename": unique_filename}
+        return {
+            "url": upload_result["secure_url"],
+            "public_id": upload_result["public_id"]
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
 
 
 @router.get("/", response_model=List[CarResponse])
 def get_cars(
-        car_type: Optional[str] = Query(None),
-        fuel_type: Optional[str] = Query(None),
+        car_type: Optional[str] = None,
+        fuel_type: Optional[str] = None,
         db: Session = Depends(get_db)
 ):
+    """
+    Get all cars with optional filtering by car_type and fuel_type.
+    """
     query = db.query(Car)
 
     if car_type:
@@ -62,123 +78,122 @@ def get_cars(
         query = query.filter(Car.fuel_type == fuel_type)
 
     cars = query.all()
-    result = []
-    for car in cars:
-        feedbacks = db.query(Feedback).filter(Feedback.car_id == car.id).all()
-        avg_rating = sum(f.rating for f in feedbacks) / len(feedbacks) if feedbacks else 0.0
-        review_count = len(feedbacks)
-
-        images_data = car.images
-        if isinstance(images_data, str):
-            try:
-                images_data = json.loads(images_data)
-            except:
-                images_data = []
-
-        result.append({
-            "id": car.id,
-            "make": car.make,
-            "model": car.model,
-            "year": car.year,
-            "color": car.color,
-            "seat_number": car.seat_number,
-            "price_per_day": car.price_per_day,
-            "images": images_data,
-            "car_type": car.car_type.value if hasattr(car.car_type, 'value') else car.car_type,
-            "fuel_type": car.fuel_type.value if hasattr(car.fuel_type, 'value') else car.fuel_type,
-            "status": car.status.value if hasattr(car.status, 'value') else car.status,
-            "average_rating": avg_rating,
-            "review_count": review_count
-        })
-    return result
+    return cars
 
 
-@router.post("/", response_model=CarResponse, dependencies=[Depends(require_role([Role.SUPER_ADMIN]))])
-def create_car(car: CarCreate, db: Session = Depends(get_db)):
+@router.post("/", response_model=CarResponse)
+def create_car(
+        car: CarCreate,
+        db: Session = Depends(get_db),
+        current_user=Depends(require_role([Role.SUPER_ADMIN]))
+):
+    """
+    Create a new car (Super Admin only).
+    Images should be uploaded first via /upload-image endpoint,
+    then pass the URLs as a JSON array in the 'images' field.
+    """
+    # Handle images field - ensure it's stored as JSON string in database
+    images_data = car.images if car.images else []
+    if isinstance(images_data, list):
+        images_data = json.dumps(images_data)
+
     db_car = Car(
-        make=car.make, model=car.model, year=car.year, color=car.color,
-        seat_number=car.seat_number, price_per_day=car.price_per_day,
-        images=json.dumps(car.images),
+        make=car.make,
+        model=car.model,
+        year=car.year,
+        color=car.color,
+        seat_number=car.seat_number,
+        price_per_day=car.price_per_day,
         car_type=car.car_type,
         fuel_type=car.fuel_type,
+        images=images_data,
         status=CarStatus.AVAILABLE
     )
+
     db.add(db_car)
     db.commit()
     db.refresh(db_car)
-
-    return {
-        "id": db_car.id, "make": db_car.make, "model": db_car.model, "year": db_car.year,
-        "color": db_car.color, "seat_number": db_car.seat_number, "price_per_day": db_car.price_per_day,
-        "images": car.images, "car_type": db_car.car_type, "fuel_type": db_car.fuel_type,
-        "status": db_car.status, "average_rating": 0.0, "review_count": 0
-    }
+    return db_car
 
 
-@router.put("/{car_id}", response_model=CarResponse, dependencies=[Depends(require_role([Role.SUPER_ADMIN]))])
-def update_car(car_id: int, car: CarUpdate, db: Session = Depends(get_db)):
+@router.get("/{car_id}", response_model=CarResponse)
+def get_car(
+        car_id: int,
+        db: Session = Depends(get_db)
+):
+    """
+    Get a specific car by ID.
+    """
+    car = db.query(Car).filter(Car.id == car_id).first()
+    if not car:
+        raise HTTPException(status_code=404, detail="Car not found")
+    return car
+
+
+@router.put("/{car_id}", response_model=CarResponse)
+def update_car(
+        car_id: int,
+        car: CarUpdate,
+        db: Session = Depends(get_db),
+        current_user=Depends(require_role([Role.SUPER_ADMIN]))
+):
+    """
+    Update car information (Super Admin only).
+    """
     db_car = db.query(Car).filter(Car.id == car_id).first()
     if not db_car:
         raise HTTPException(status_code=404, detail="Car not found")
 
-    for key, value in car.dict(exclude_unset=True).items():
-        if key == 'images' and value is not None:
-            setattr(db_car, key, json.dumps(value))
-        else:
-            setattr(db_car, key, value)
+    # Update fields
+    update_data = car.dict(exclude_unset=True)
+
+    # Handle images if provided
+    if "images" in update_data:
+        images_data = update_data["images"]
+        if isinstance(images_data, list):
+            update_data["images"] = json.dumps(images_data)
+
+    for field, value in update_data.items():
+        setattr(db_car, field, value)
 
     db.commit()
     db.refresh(db_car)
-
-    feedbacks = db.query(Feedback).filter(Feedback.car_id == db_car.id).all()
-    avg_rating = sum(f.rating for f in feedbacks) / len(feedbacks) if feedbacks else 0.0
-
-    images_data = db_car.images
-    if isinstance(images_data, str):
-        try:
-            images_data = json.loads(images_data)
-        except:
-            images_data = []
-
-    return {
-        "id": db_car.id, "make": db_car.make, "model": db_car.model, "year": db_car.year,
-        "color": db_car.color, "seat_number": db_car.seat_number, "price_per_day": db_car.price_per_day,
-        "images": images_data, "car_type": db_car.car_type, "fuel_type": db_car.fuel_type,
-        "status": db_car.status, "average_rating": avg_rating, "review_count": len(feedbacks)
-    }
+    return db_car
 
 
-@router.delete("/{car_id}", dependencies=[Depends(require_role([Role.SUPER_ADMIN]))])
-def delete_car(car_id: int, db: Session = Depends(get_db)):
-    db_car = db.query(Car).filter(Car.id == car_id).first()
-    if not db_car:
+@router.delete("/{car_id}")
+def delete_car(
+        car_id: int,
+        db: Session = Depends(get_db),
+        current_user=Depends(require_role([Role.SUPER_ADMIN]))
+):
+    """
+    Delete a car (Super Admin only).
+    """
+    car = db.query(Car).filter(Car.id == car_id).first()
+    if not car:
         raise HTTPException(status_code=404, detail="Car not found")
 
-    from app.models import Booking, BookingStatus
-    active_bookings = db.query(Booking).filter(
-        Booking.car_id == car_id,
-        Booking.status.in_([BookingStatus.PENDING, BookingStatus.APPROVED])
-    ).first()
-
-    if active_bookings:
-        raise HTTPException(status_code=400, detail="Cannot delete car with active bookings")
-
-    # Delete associated images
-    images_data = db_car.images
-    if isinstance(images_data, str):
-        try:
-            images_data = json.loads(images_data)
-        except:
-            images_data = []
-
-    uploads_dir = get_uploads_dir()
-    for img_url in images_data:
-        if img_url.startswith("/uploads/"):
-            filename = img_url.replace("/uploads/", "")
-            file_path = os.path.join(uploads_dir, filename)
-            if os.path.exists(file_path):
-                os.remove(file_path)
-
-    db.delete(db_car)
+    db.delete(car)
     db.commit()
     return {"message": "Car deleted successfully"}
+
+
+@router.put("/{car_id}/status")
+def update_car_status(
+        car_id: int,
+        status: CarStatus,
+        db: Session = Depends(get_db),
+        current_user=Depends(require_role([Role.SUPER_ADMIN, Role.STAFF]))
+):
+    """
+    Update car status (Admin/Staff only).
+    """
+    car = db.query(Car).filter(Car.id == car_id).first()
+    if not car:
+        raise HTTPException(status_code=404, detail="Car not found")
+
+    car.status = status
+    db.commit()
+    db.refresh(car)
+    return {"message": f"Car status updated to {status.value}"}

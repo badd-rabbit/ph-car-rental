@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
 
 const AuthContext = createContext();
@@ -10,6 +10,17 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [notificationCount, setNotificationCount] = useState(0);
 
+  // Function to fetch notification count
+  const fetchNotificationCount = useCallback(async () => {
+    if (!user) return;
+    try {
+      const res = await api.get('/bookings/notification-count');
+      setNotificationCount(res.data.count);
+    } catch (error) {
+      console.error('Failed to fetch notification count');
+    }
+  }, [user]);
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     const userData = localStorage.getItem('user');
@@ -18,21 +29,25 @@ export const AuthProvider = ({ children }) => {
       const parsedUser = JSON.parse(userData);
       setUser(parsedUser);
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      fetchNotificationCount(parsedUser);
+
+      // Initial fetch
+      api.get('/bookings/notification-count')
+        .then(res => setNotificationCount(res.data.count))
+        .catch(() => console.error('Failed to fetch initial notification count'));
+
+      // 🔄 Poll every 30 seconds to keep the badge updated in real-time
+      const interval = setInterval(() => {
+        api.get('/bookings/notification-count')
+          .then(res => setNotificationCount(res.data.count))
+          .catch(() => {});
+      }, 30000);
+
+      // Cleanup interval on unmount
+      return () => clearInterval(interval);
     }
 
     setLoading(false);
   }, []);
-
-  const fetchNotificationCount = async (currentUser) => {
-    if (!currentUser) return;
-    try {
-      const res = await api.get('/bookings/notification-count');
-      setNotificationCount(res.data.count);
-    } catch (error) {
-      console.error('Failed to fetch notification count');
-    }
-  };
 
   const login = async (loginData) => {
     const { access_token, user: userData } = loginData;
@@ -40,10 +55,13 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('user', JSON.stringify(userData));
     api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
     setUser(userData);
-    fetchNotificationCount(userData);
+
+    // Fetch count immediately after login
+    api.get('/bookings/notification-count')
+      .then(res => setNotificationCount(res.data.count))
+      .catch(() => {});
   };
 
-  // NEW: Added updateUser function for Settings page
   const updateUser = (updatedUser) => {
     setUser(updatedUser);
     localStorage.setItem('user', JSON.stringify(updatedUser));
@@ -62,7 +80,7 @@ export const AuthProvider = ({ children }) => {
       user,
       login,
       logout,
-      updateUser, // NEW: Exposed
+      updateUser,
       loading,
       notificationCount,
       setNotificationCount,

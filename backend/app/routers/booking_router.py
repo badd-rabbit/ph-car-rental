@@ -95,7 +95,12 @@ def create_booking(booking: BookingCreate, db: Session = Depends(get_db),
 def get_notification_count(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     count = 0
     if current_user.role in [Role.SUPER_ADMIN, Role.STAFF]:
-        count = db.query(Booking).filter(Booking.status == BookingStatus.PENDING).count()
+        # Count pending bookings + recently cancelled bookings
+        pending_count = db.query(Booking).filter(Booking.status == BookingStatus.PENDING).count()
+        cancelled_count = db.query(Booking).filter(
+            Booking.status.in_([BookingStatus.CANCELLED_USER, BookingStatus.CANCELLED_ADMIN])
+        ).count()
+        count = pending_count + cancelled_count
     elif current_user.role == Role.RENTER:
         count = db.query(Booking).filter(
             Booking.user_id == current_user.id,

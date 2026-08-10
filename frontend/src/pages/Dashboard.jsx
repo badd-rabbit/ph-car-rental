@@ -8,9 +8,9 @@ import AddCarModal from '../components/AddCarModal';
 import EditCarModal from '../components/EditCarModal';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import CarImageGallery from '../components/CarImageGallery';
+import MobileNavbar from '../components/MobileNavbar';
 import { FaStar, FaEdit, FaTrash } from 'react-icons/fa';
 
-// Helper to fix image URLs for production and local development
 const getImageUrl = (url) => {
   if (!url) return null;
   if (url.startsWith('http') || url.startsWith('blob:') || url.startsWith('data:')) {
@@ -22,7 +22,6 @@ const getImageUrl = (url) => {
   return `${cleanBaseUrl}${cleanUrl}`;
 };
 
-// Inline SVG placeholder to prevent infinite 404 loops
 const getPlaceholderImage = () =>
   'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iI2UyZThmMSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjAiIGZpbGw9IiM5Y2EzYWYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5ObyBJbWFnZTwvdGV4dD48L3N2Zz4=';
 
@@ -39,27 +38,24 @@ const Dashboard = () => {
   const [fuelType, setFuelType] = useState('');
 
   const fetchCars = async () => {
-  try {
-    let url = '/cars/';
-    const params = [];
-    if (carType) params.push(`car_type=${carType}`);
-    if (fuelType) params.push(`fuel_type=${fuelType}`);
-    if (params.length > 0) url += '?' + params.join('&');
+    try {
+      let url = '/cars/';
+      const params = [];
+      if (carType) params.push(`car_type=${carType}`);
+      if (fuelType) params.push(`fuel_type=${fuelType}`);
+      if (params.length > 0) url += '?' + params.join('&');
 
-    const res = await api.get(url);
-    setCars(res.data);
-  } catch (error) {
-    console.error('Error fetching cars:', error);
-    toast.error('Failed to fetch cars');
-    setCars([]); // Set empty array on error
-  } finally {
-    setLoading(false); // Always set to false
-  }
-};
+      const res = await api.get(url);
+      setCars(res.data);
+    } catch (error) {
+      toast.error('Failed to fetch cars');
+      setCars([]);
+    }
+  };
 
   useEffect(() => {
-  fetchCars();
-}, [carType, fuelType]);
+    fetchCars();
+  }, [carType, fuelType]);
 
   const handleDeleteConfirm = async () => {
     if (!deleteCar) return;
@@ -95,46 +91,20 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <nav className="bg-primary text-white shadow-md">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          <h1 className="text-xl font-bold">PH Car Rental {isAdmin ? 'Admin' : 'Dashboard'}</h1>
-          <div className="flex items-center gap-3 flex-wrap">
-            {!isAdmin && (
-              <button onClick={() => navigate('/my-bookings')} className="bg-white text-primary px-4 py-1 rounded text-sm hover:bg-gray-100 transition relative">
-                My Bookings
-                {notificationCount > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
-                    {notificationCount}
-                  </span>
-                )}
-              </button>
-            )}
-            {isAdmin && (
-              <button onClick={() => navigate('/admin-bookings')} className="bg-white text-primary px-4 py-1 rounded text-sm hover:bg-gray-100 transition relative">
-                Manage Bookings
-                {notificationCount > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
-                    {notificationCount}
-                  </span>
-                )}
-              </button>
-            )}
-            {isSuperAdmin && (
-              <button onClick={() => navigate('/manage-staff')} className="bg-purple-600 text-white px-4 py-1 rounded text-sm hover:bg-purple-700 transition">Manage Staff</button>
-            )}
-            <button onClick={() => navigate('/settings')} className="bg-white text-primary px-4 py-1 rounded text-sm hover:bg-gray-100 transition">Settings</button>
-            <span className="text-sm ml-2">Welcome, {user?.full_name}</span>
-            <button onClick={logout} className="bg-secondary px-4 py-1 rounded text-sm hover:bg-orange-600 transition">Logout</button>
-          </div>
-        </div>
-      </nav>
+      <MobileNavbar />
 
-      <div className="max-w-7xl mx-auto p-6">
-        <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
-          <h2 className="text-2xl font-bold text-textDark">{isAdmin ? 'Fleet Management' : 'Available Cars'}</h2>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-3">
+          <h2 className="text-xl sm:text-2xl font-bold text-textDark">
+            {isAdmin ? 'Fleet Management' : 'Available Cars'}
+          </h2>
 
-          <div className="flex gap-2 flex-wrap items-center">
-            <select value={carType} onChange={(e) => setCarType(e.target.value)} className="border rounded px-3 py-2 text-sm bg-white shadow-sm focus:outline-none focus:border-primary">
+          <div className="flex gap-2 flex-wrap items-center w-full sm:w-auto">
+            <select
+              value={carType}
+              onChange={(e) => setCarType(e.target.value)}
+              className="border rounded px-3 py-2 text-sm bg-white shadow-sm focus:outline-none focus:border-primary w-full sm:w-auto"
+            >
               <option value="">All Vehicle Types</option>
               <option value="SUV">SUV</option>
               <option value="Pickup">Pickup</option>
@@ -143,7 +113,11 @@ const Dashboard = () => {
               <option value="Sports">Sports</option>
             </select>
 
-            <select value={fuelType} onChange={(e) => setFuelType(e.target.value)} className="border rounded px-3 py-2 text-sm bg-white shadow-sm focus:outline-none focus:border-primary">
+            <select
+              value={fuelType}
+              onChange={(e) => setFuelType(e.target.value)}
+              className="border rounded px-3 py-2 text-sm bg-white shadow-sm focus:outline-none focus:border-primary w-full sm:w-auto"
+            >
               <option value="">All Fuel Types</option>
               <option value="Gasoline">Gasoline</option>
               <option value="Diesel">Diesel</option>
@@ -152,7 +126,10 @@ const Dashboard = () => {
             </select>
 
             {isSuperAdmin && (
-              <button onClick={() => setShowAddCar(true)} className="bg-secondary text-white px-4 py-2 rounded hover:bg-orange-600 transition font-medium">
+              <button
+                onClick={() => setShowAddCar(true)}
+                className="bg-secondary text-white px-4 py-2 rounded hover:bg-orange-600 transition font-medium w-full sm:w-auto"
+              >
                 + Add New Car
               </button>
             )}
@@ -160,11 +137,11 @@ const Dashboard = () => {
         </div>
 
         {cars.length === 0 ? (
-          <div className="bg-white rounded-lg shadow-md p-12 text-center">
+          <div className="bg-white rounded-lg shadow-md p-8 sm:p-12 text-center">
             <p className="text-textLight text-lg">No cars available with the selected filters.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {cars.map((car) => (
               <div key={car.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 flex flex-col">
                 <div
@@ -195,10 +172,10 @@ const Dashboard = () => {
                   </div>
                 </div>
 
-                <div className="p-6 flex-1 flex flex-col">
-                  <h3 className="text-xl font-bold text-primary">{car.make} {car.model}</h3>
+                <div className="p-4 sm:p-6 flex-1 flex flex-col">
+                  <h3 className="text-lg sm:text-xl font-bold text-primary">{car.make} {car.model}</h3>
                   <p className="text-textLight text-sm mt-1">{car.year} • {car.color} • {car.seat_number} Seats</p>
-                  <div className="flex gap-2 mt-2">
+                  <div className="flex gap-2 mt-2 flex-wrap">
                     <span className="bg-blue-50 text-primary text-xs px-2 py-1 rounded">{car.car_type}</span>
                     <span className="bg-orange-50 text-secondary text-xs px-2 py-1 rounded">{car.fuel_type}</span>
                   </div>

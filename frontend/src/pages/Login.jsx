@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { toast } from 'react-toastify';
-import { FaHome, FaEnvelope, FaLock } from 'react-icons/fa';
+import { FaEnvelope, FaLock } from 'react-icons/fa';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -44,10 +44,10 @@ const Login = () => {
         {/* Back to Home Button - Top left of modal */}
         <button
           onClick={() => navigate('/')}
-          className="absolute -top-3.5 -left-3.5 bg-white text-primary hover:text-secondary shadow-lg rounded-full p-2 transition flex items-center justify-center"
+          className="absolute -top-3.5 -left-3.5 bg-white text-primary hover:text-secondary shadow-lg rounded-full px-4 py-2 transition flex items-center justify-center text-sm font-medium"
           title="Back to Home"
         >
-          <FaHome className="text-xl" />
+          Back to Home
         </button>
 
         {/* Login Modal */}

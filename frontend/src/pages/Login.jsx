@@ -41,10 +41,10 @@ const Login = () => {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       {/* Login Modal Container with relative positioning */}
       <div className="relative w-full max-w-md">
-        {/* Back to Home Button - Top right of modal */}
+        {/* Back to Home Button - Top left of modal */}
         <button
           onClick={() => navigate('/')}
-          className="absolute -top-3.5 -right-3.5 bg-white text-primary hover:text-secondary shadow-lg rounded-full p-2 transition flex items-center justify-center"
+          className="absolute -top-3.5 -left-3.5 bg-white text-primary hover:text-secondary shadow-lg rounded-full p-2 transition flex items-center justify-center"
           title="Back to Home"
         >
           <FaHome className="text-xl" />

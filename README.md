@@ -1,4 +1,4 @@
-#  PH Car Rental System
+#  PH Car Rental System v1.0.0
 
 A modern, full-stack car rental management platform built for the Philippine market.
 

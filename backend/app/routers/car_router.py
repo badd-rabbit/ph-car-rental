@@ -87,33 +87,41 @@ def create_car(
         db: Session = Depends(get_db),
         current_user=Depends(require_role([Role.SUPER_ADMIN]))
 ):
-    """
-    Create a new car (Super Admin only).
-    Images should be uploaded first via /upload-image endpoint,
-    then pass the URLs as a JSON array in the 'images' field.
-    """
-    # Handle images field - ensure it's stored as JSON string in database
-    images_data = car.images if car.images else []
-    if isinstance(images_data, list):
-        images_data = json.dumps(images_data)
+    try:
+        # Handle images field - convert list to JSON string
+        images_data = []
+        if hasattr(car, 'images') and car.images:
+            if isinstance(car.images, list):
+                images_data = car.images
+            elif isinstance(car.images, str):
+                try:
+                    images_data = json.loads(car.images)
+                except:
+                    images_data = [car.images]
 
-    db_car = Car(
-        make=car.make,
-        model=car.model,
-        year=car.year,
-        color=car.color,
-        seat_number=car.seat_number,
-        price_per_day=car.price_per_day,
-        car_type=car.car_type,
-        fuel_type=car.fuel_type,
-        images=images_data,
-        status=CarStatus.AVAILABLE
-    )
+        # Convert to JSON string for database
+        images_json = json.dumps(images_data) if images_data else "[]"
 
-    db.add(db_car)
-    db.commit()
-    db.refresh(db_car)
-    return db_car
+        db_car = Car(
+            make=car.make,
+            model=car.model,
+            year=car.year,
+            color=car.color,
+            seat_number=car.seat_number,
+            price_per_day=car.price_per_day,
+            car_type=car.car_type,
+            fuel_type=car.fuel_type,
+            images=images_json,
+            status=CarStatus.AVAILABLE
+        )
+
+        db.add(db_car)
+        db.commit()
+        db.refresh(db_car)
+        return db_car
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/{car_id}", response_model=CarResponse)

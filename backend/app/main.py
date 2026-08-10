@@ -5,25 +5,28 @@ from app.database import engine, Base
 from app.routers import car_router, booking_router, chatbot_router, auth_router, user_router
 import logging
 import os
+from sqlalchemy import text
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="PH Car Rental API")
 
+# CORS Configuration - Fixed to prevent conflicts
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",
         "https://ph-car-rental.pages.dev",
-        "*",
+        "https://ph-car-rental.pages.dev/",
+        "*"  # Kept for deployment flexibility
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Serve uploaded images statically
+# Serve uploaded images statically (fallback)
 uploads_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploads")
 os.makedirs(uploads_dir, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
@@ -34,67 +37,59 @@ app.include_router(booking_router.router)
 app.include_router(chatbot_router.router)
 app.include_router(user_router.router)
 
+
 @app.get("/")
 def root():
     return {"message": "PH Car Rental API is running"}
+
 
 @app.get("/health")
 def health_check():
     return {"status": "healthy", "database": "connected"}
 
+
+# ✅ MERGED STARTUP EVENT (Fixes the missing tables bug)
 @app.on_event("startup")
-def create_tables():
-    logger.info("Creating/updating database tables...")
+async def startup_event():
+    logger.info("Starting up PH Car Rental API...")
+
+    # 1. Create tables if they don't exist
     try:
-        # This will create tables if they don't exist
-        # Note: It won't add columns to existing tables automatically
+        logger.info("Creating/updating database tables...")
         Base.metadata.create_all(bind=engine)
-        logger.info("Database tables checked/created successfully!")
+        logger.info("✅ Database tables checked/created successfully!")
     except Exception as e:
-        logger.error(f"Error with database tables: {e}")
+        logger.error(f"❌ Error with database tables: {e}")
 
-
-@app.on_event("startup")
-async def add_missing_columns():
-    """Add missing columns and fix payment_method on startup"""
-    from sqlalchemy import text
-
+    # 2. Run migrations for missing columns
     logger.info("Running database migrations...")
     try:
         with engine.connect() as conn:
-            # 1. Add total_price if not exists
+            # Add total_price if not exists
             try:
-                conn.execute(text("""
-                    ALTER TABLE bookings 
-                    ADD COLUMN IF NOT EXISTS total_price FLOAT
-                """))
+                conn.execute(text("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS total_price FLOAT"))
                 conn.commit()
-                logger.info("✓ total_price column")
+                logger.info("✓ total_price column ensured")
             except Exception as e:
-                logger.warning(f"total_price: {e}")
+                logger.warning(f"total_price check: {e}")
 
-            # 2. Add created_at if not exists
+            # Add created_at if not exists
             try:
-                conn.execute(text("""
-                    ALTER TABLE bookings 
-                    ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                """))
+                conn.execute(text(
+                    "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"))
                 conn.commit()
-                logger.info("✓ created_at column")
+                logger.info("✓ created_at column ensured")
             except Exception as e:
-                logger.warning(f"created_at: {e}")
+                logger.warning(f"created_at check: {e}")
 
-            # 3. Fix payment_method - change from ENUM to VARCHAR
+            # Fix payment_method - change from ENUM to VARCHAR if needed
             try:
-                conn.execute(text("""
-                    ALTER TABLE bookings 
-                    ALTER COLUMN payment_method TYPE VARCHAR
-                """))
+                conn.execute(text("ALTER TABLE bookings ALTER COLUMN payment_method TYPE VARCHAR"))
                 conn.commit()
                 logger.info("✓ payment_method changed to VARCHAR")
             except Exception as e:
-                logger.warning(f"payment_method: {e}")
+                logger.warning(f"payment_method check: {e}")
 
         logger.info("✅ Database migrations completed!")
     except Exception as e:
-        logger.error(f"Migration error: {e}")
+        logger.error(f"❌ Migration error: {e}")

@@ -69,15 +69,20 @@ class Car(Base):
 
 class Booking(Base):
     __tablename__ = "bookings"
+
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     car_id = Column(Integer, ForeignKey("cars.id"))
     start_date = Column(DateTime)
     end_date = Column(DateTime)
     status = Column(Enum(BookingStatus), default=BookingStatus.PENDING)
-    payment_method = Column(Enum(PaymentMethod))
-    cancellation_reason = Column(Text, nullable=True)
+    payment_method = Column(String)
+    total_price = Column(Float, nullable=True)
+    cancellation_reason = Column(String, nullable=True)
     approved_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow) # <--- ADD THIS LINE
+
+    # Relationships
     user = relationship("User", back_populates="bookings")
     car = relationship("Car", back_populates="bookings")
     feedback = relationship("Feedback", back_populates="booking", uselist=False)

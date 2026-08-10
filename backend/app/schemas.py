@@ -1,10 +1,9 @@
 from pydantic import BaseModel, EmailStr, Field, model_validator
 from typing import Optional, List, Any
 from datetime import datetime
-from enum import Enum
 import json
 
-# --- User Schemas ---
+# ========== USER SCHEMAS ==========
 class UserBase(BaseModel):
     email: EmailStr
     full_name: str
@@ -13,6 +12,15 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str
 
+class UserUpdate(BaseModel):
+    full_name: Optional[str] = None
+    mobile_number: Optional[str] = None
+    email: Optional[EmailStr] = None
+
+class PasswordChange(BaseModel):
+    old_password: str
+    new_password: str
+
 class UserResponse(UserBase):
     id: int
     role: str
@@ -20,7 +28,11 @@ class UserResponse(UserBase):
     class Config:
         from_attributes = True
 
-# --- Auth Schemas ---
+class StaffCreate(UserBase):
+    password: str
+    role: str = "staff"
+
+# ========== AUTH SCHEMAS ==========
 class Token(BaseModel):
     access_token: str
     token_type: str
@@ -28,7 +40,7 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     email: Optional[str] = None
 
-# --- Car Schemas ---
+# ========== CAR SCHEMAS ==========
 class CarCreate(BaseModel):
     make: str
     model: str
@@ -84,7 +96,7 @@ class CarResponse(BaseModel):
     class Config:
         from_attributes = True
 
-# --- Booking Schemas ---
+# ========== BOOKING SCHEMAS ==========
 class BookingCreate(BaseModel):
     car_id: int
     start_date: datetime
@@ -109,8 +121,9 @@ class BookingResponse(BaseModel):
 
 class BookingWithCarResponse(BookingResponse):
     car: CarResponse
+    user: Optional[UserResponse] = None
 
-# --- Feedback Schemas ---
+# ========== FEEDBACK SCHEMAS ==========
 class FeedbackCreate(BaseModel):
     booking_id: int
     rating: int

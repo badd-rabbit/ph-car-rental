@@ -7,29 +7,47 @@ from app.database import get_db
 from app.models import User, Role
 from app.schemas import UserCreate, UserResponse
 from app.auth import get_password_hash, verify_password, create_access_token, SECRET_KEY, ALGORITHM
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
 @router.post("/register", response_model=UserResponse)
 def register(user: UserCreate, db: Session = Depends(get_db)):
-    # Check if email already exists
-    db_user = db.query(User).filter(User.email == user.email).first()
-    if db_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
+    try:
+        # Check if email already exists
+        db_user = db.query(User).filter(User.email == user.email).first()
+        if db_user:
+            raise HTTPException(status_code=400, detail="Email already registered")
 
-    hashed_password = get_password_hash(user.password)
-    new_user = User(
-        email=user.email,
-        full_name=user.full_name,
-        mobile_number=user.mobile_number,
-        hashed_password=hashed_password,
-        role=user.role
-    )
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-    return new_user
+        # Check if mobile number already exists
+        db_mobile = db.query(User).filter(User.mobile_number == user.mobile_number).first()
+        if db_mobile:
+            raise HTTPException(status_code=400, detail="Mobile number already registered")
+
+        # Create new user with default RENTER role
+        hashed_password = get_password_hash(user.password)
+        new_user = User(
+            email=user.email,
+            full_name=user.full_name,
+            mobile_number=user.mobile_number,
+            hashed_password=hashed_password,
+            role=Role.RENTER  # ✅ FIXED: Use default role instead of user.role
+        )
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
+
+        logger.info(f"User registered successfully: {user.email}")
+        return new_user
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Registration failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Registration failed: {str(e)}")
 
 
 @router.post("/login")

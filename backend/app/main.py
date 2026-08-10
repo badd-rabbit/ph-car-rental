@@ -23,16 +23,15 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",
-        # "https://statuesque-paletas-d087e4.netlify.app", # Your old Netlify site
-        "https://ph-car-rental.pages.dev", # <--- ADD THIS NEW LINE
-        "*",
+        "https://ph-car-rental.pages.dev",
+        "*" # Kept for testing flexibility
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Serve uploaded images statically
+# Keep this for backward compatibility with any old local uploads
 uploads_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploads")
 os.makedirs(uploads_dir, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")

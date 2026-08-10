@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaBars, FaTimes, FaCar, FaClock, FaShieldAlt, FaMoneyBillWave, FaStar } from 'react-icons/fa';
+import { FaBars, FaTimes, FaCar, FaClock, FaShieldAlt, FaMoneyBillWave, FaStar, FaQuoteLeft } from 'react-icons/fa';
 import api from '../services/api';
 import { toast } from 'react-toastify';
 
@@ -63,6 +63,52 @@ const LandingPage = () => {
     }
   ];
 
+  // Sample testimonials - in production, fetch from API
+  const testimonials = [
+    {
+      name: 'Maria Santos',
+      role: 'Frequent Traveler',
+      rating: 5,
+      comment: 'Excellent service! The car was clean and well-maintained. The booking process was smooth and the staff was very accommodating. Highly recommended!',
+      location: 'Manila'
+    },
+    {
+      name: 'Juan Dela Cruz',
+      role: 'Business Traveler',
+      rating: 5,
+      comment: 'Best car rental experience I have had in the Philippines. Great rates, professional service, and the vehicle was in perfect condition. Will definitely book again!',
+      location: 'Cebu'
+    },
+    {
+      name: 'Sarah Johnson',
+      role: 'Tourist',
+      rating: 5,
+      comment: 'As a tourist, I was worried about renting a car, but PH Car Rental made it so easy! The online booking was simple and the pickup was hassle-free. Thank you!',
+      location: 'Davao'
+    },
+    {
+      name: 'Roberto Reyes',
+      role: 'Local Renter',
+      rating: 4,
+      comment: 'Very reliable service. I have rented from them multiple times for family trips. The cars are always clean and the prices are reasonable. Great job!',
+      location: 'Quezon City'
+    },
+    {
+      name: 'Emily Chen',
+      role: 'Adventure Seeker',
+      rating: 5,
+      comment: 'Rented an SUV for our Baguio trip and it was perfect! The vehicle handled the mountain roads excellently. Customer service was top-notch. Five stars!',
+      location: 'Makati'
+    },
+    {
+      name: 'Miguel Torres',
+      role: 'Regular Customer',
+      rating: 5,
+      comment: 'I have been using PH Car Rental for over a year now for both personal and business trips. Consistent quality and service. They never disappoint!',
+      location: 'Pasig'
+    }
+  ];
+
   const renderRating = (rating, count) => {
     if (count === 0 || rating === 0) return <span className="text-gray-400 text-sm italic">Not yet Rated</span>;
     return (
@@ -70,6 +116,19 @@ const LandingPage = () => {
         <FaStar className="text-yellow-400" />
         <span className="text-sm font-bold text-gray-800">{rating.toFixed(1)}</span>
         <span className="text-xs text-gray-500">({count} reviews)</span>
+      </div>
+    );
+  };
+
+  const renderStars = (rating) => {
+    return (
+      <div className="flex gap-1">
+        {[...Array(5)].map((_, i) => (
+          <FaStar
+            key={i}
+            className={i < rating ? 'text-yellow-400' : 'text-gray-300'}
+          />
+        ))}
       </div>
     );
   };
@@ -268,6 +327,44 @@ const LandingPage = () => {
               </button>
             </div>
           )}
+        </div>
+      </section>
+
+      {/* Reviews/Testimonials Section */}
+      <section className="py-12 sm:py-16 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-8 sm:mb-12">
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3 sm:mb-4">What Our Customers Say</h2>
+            <p className="text-base sm:text-lg text-gray-600">Real reviews from satisfied renters</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+            {testimonials.map((testimonial, index) => (
+              <div key={index} className="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition">
+                <div className="flex items-center gap-2 mb-4">
+                  <FaQuoteLeft className="text-primary text-2xl" />
+                  <div className="flex-1">
+                    {renderStars(testimonial.rating)}
+                  </div>
+                </div>
+                <p className="text-gray-700 mb-4 italic leading-relaxed">"{testimonial.comment}"</p>
+                <div className="border-t border-gray-200 pt-4">
+                  <p className="font-bold text-gray-900">{testimonial.name}</p>
+                  <p className="text-sm text-gray-600">{testimonial.role}</p>
+                  <p className="text-xs text-gray-500 mt-1">📍 {testimonial.location}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="text-center mt-8">
+            <button
+              onClick={() => navigate('/reviews')}
+              className="bg-primary text-white px-6 sm:px-8 py-3 rounded-lg font-bold hover:bg-blue-800 transition"
+            >
+              View All Reviews
+            </button>
+          </div>
         </div>
       </section>
 

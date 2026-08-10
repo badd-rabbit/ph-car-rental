@@ -10,45 +10,39 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [notificationCount, setNotificationCount] = useState(0);
 
-  // Function to fetch notification count
-  const fetchNotificationCount = useCallback(async () => {
-    if (!user) return;
-    try {
-      const res = await api.get('/bookings/notification-count');
-      setNotificationCount(res.data.count);
-    } catch (error) {
-      console.error('Failed to fetch notification count');
-    }
-  }, [user]);
-
   useEffect(() => {
-  const token = localStorage.getItem('token');
-  const userData = localStorage.getItem('user');
+    const token = localStorage.getItem('token');
+    const userData = localStorage.getItem('user');
 
-  if (token && userData) {
-    const parsedUser = JSON.parse(userData);
-    setUser(parsedUser);
-    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    if (token && userData) {
+      const parsedUser = JSON.parse(userData);
+      setUser(parsedUser);
+      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
-    // Initial fetch
-    api.get('/bookings/notification-count')
-      .then(res => setNotificationCount(res.data.count))
-      .catch(() => console.error('Failed to fetch initial notification count'));
-
-    //  Poll every 30 seconds
-    const interval = setInterval(() => {
+      // Initial fetch
       api.get('/bookings/notification-count')
         .then(res => setNotificationCount(res.data.count))
-        .catch(() => {});
-    }, 30000);
+        .catch(() => console.error('Failed to fetch initial notification count'));
 
-    // Cleanup interval on unmount
-    return () => clearInterval(interval);
-  }
+      // Poll every 30 seconds
+      const interval = setInterval(() => {
+        api.get('/bookings/notification-count')
+          .then(res => setNotificationCount(res.data.count))
+          .catch(() => {});
+      }, 30000);
 
-  // ✅ THIS MUST BE OUTSIDE THE IF BLOCK
-  setLoading(false);
-}, []);
+      // ✅ FIX: Set loading to false HERE, before the return statement
+      setLoading(false);
+
+      // Cleanup function
+      return () => {
+        clearInterval(interval);
+      };
+    }
+
+    // ✅ FIX: If no token, also set loading to false
+    setLoading(false);
+  }, []);
 
   const login = async (loginData) => {
     const { access_token, user: userData } = loginData;
@@ -56,8 +50,8 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('user', JSON.stringify(userData));
     api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
     setUser(userData);
+    setLoading(false); // Ensure loading is false after login
 
-    // Fetch count immediately after login
     api.get('/bookings/notification-count')
       .then(res => setNotificationCount(res.data.count))
       .catch(() => {});
@@ -74,6 +68,7 @@ export const AuthProvider = ({ children }) => {
     delete api.defaults.headers.common['Authorization'];
     setUser(null);
     setNotificationCount(0);
+    setLoading(false);
   };
 
   return (
@@ -84,8 +79,7 @@ export const AuthProvider = ({ children }) => {
       updateUser,
       loading,
       notificationCount,
-      setNotificationCount,
-      fetchNotificationCount
+      setNotificationCount
     }}>
       {children}
     </AuthContext.Provider>

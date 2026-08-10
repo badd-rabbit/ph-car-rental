@@ -39,23 +39,27 @@ const Dashboard = () => {
   const [fuelType, setFuelType] = useState('');
 
   const fetchCars = async () => {
-    try {
-      let url = '/cars/';
-      const params = [];
-      if (carType) params.push(`car_type=${carType}`);
-      if (fuelType) params.push(`fuel_type=${fuelType}`);
-      if (params.length > 0) url += '?' + params.join('&');
+  try {
+    let url = '/cars/';
+    const params = [];
+    if (carType) params.push(`car_type=${carType}`);
+    if (fuelType) params.push(`fuel_type=${fuelType}`);
+    if (params.length > 0) url += '?' + params.join('&');
 
-      const res = await api.get(url);
-      setCars(res.data);
-    } catch (error) {
-      toast.error('Failed to fetch cars');
-    }
-  };
+    const res = await api.get(url);
+    setCars(res.data);
+  } catch (error) {
+    console.error('Error fetching cars:', error);
+    toast.error('Failed to fetch cars');
+    setCars([]); // Set empty array on error
+  } finally {
+    setLoading(false); // Always set to false
+  }
+};
 
   useEffect(() => {
-    fetchCars();
-  }, [carType, fuelType]);
+  fetchCars();
+}, [carType, fuelType]);
 
   const handleDeleteConfirm = async () => {
     if (!deleteCar) return;

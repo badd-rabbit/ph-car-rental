@@ -151,6 +151,29 @@ const MyBookings = () => {
                         {booking.status?.toUpperCase().replace('_', ' ')}
                       </span>
                     </div>
+                    {/* Show rejection reason if disapproved */}
+                    {booking.status === 'disapproved' && booking.cancellation_reason && (
+                      <div className="mt-4 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg">
+                        <p className="text-sm text-red-800 font-semibold mb-2 flex items-center gap-2">
+                          <span>⚠️</span> Reason for Rejection:
+                        </p>
+                        <p className="text-sm text-red-700 bg-white p-3 rounded border border-red-100">
+                          {booking.cancellation_reason}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Show cancellation reason if cancelled */}
+                    {booking.status === 'cancelled_user' && booking.cancellation_reason && (
+                      <div className="mt-4 p-4 bg-yellow-50 border-l-4 border-yellow-500 rounded-lg">
+                        <p className="text-sm text-yellow-800 font-semibold mb-2 flex items-center gap-2">
+                          <span>📝</span> Cancellation Reason:
+                        </p>
+                        <p className="text-sm text-yellow-700 bg-white p-3 rounded border border-yellow-100">
+                          {booking.cancellation_reason}
+                        </p>
+                      </div>
+                    )}
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-4">
                       <div className="flex items-start gap-2">

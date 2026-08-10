@@ -1,5 +1,4 @@
-// Centralized Image Helpers to prevent code duplication
-
+// Centralized helpers - DRY principle
 export const getImageUrl = (url) => {
   if (!url) return null;
   if (url.startsWith('http') || url.startsWith('blob:') || url.startsWith('data:')) {
@@ -21,7 +20,15 @@ export const getStatusColor = (status) => {
     disapproved: 'bg-red-100 text-red-800',
     completed: 'bg-blue-100 text-blue-800',
     cancelled_user: 'bg-gray-100 text-gray-800',
-    cancelled_admin: 'bg-gray-100 text-gray-800'
+    cancelled_admin: 'bg-gray-100 text-gray-800',
   };
   return colors[status?.toLowerCase()] || 'bg-gray-100 text-gray-800';
+};
+
+export const formatCurrency = (amount) => {
+  return new Intl.NumberFormat('en-PH', {
+    style: 'currency',
+    currency: 'PHP',
+    minimumFractionDigits: 0,
+  }).format(amount || 0);
 };

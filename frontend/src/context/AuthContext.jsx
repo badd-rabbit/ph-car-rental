@@ -18,8 +18,6 @@ export const AuthProvider = ({ children }) => {
       const parsedUser = JSON.parse(userData);
       setUser(parsedUser);
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-
-      // Fetch initial notification count
       fetchNotificationCount(parsedUser);
     }
 
@@ -37,12 +35,18 @@ export const AuthProvider = ({ children }) => {
   };
 
   const login = async (loginData) => {
-    const { access_token, user } = loginData;
+    const { access_token, user: userData } = loginData;
     localStorage.setItem('token', access_token);
-    localStorage.setItem('user', JSON.stringify(user));
+    localStorage.setItem('user', JSON.stringify(userData));
     api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
-    setUser(user);
-    fetchNotificationCount(user);
+    setUser(userData);
+    fetchNotificationCount(userData);
+  };
+
+  // NEW: Added updateUser function for Settings page
+  const updateUser = (updatedUser) => {
+    setUser(updatedUser);
+    localStorage.setItem('user', JSON.stringify(updatedUser));
   };
 
   const logout = () => {
@@ -54,7 +58,16 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading, notificationCount, setNotificationCount, fetchNotificationCount }}>
+    <AuthContext.Provider value={{
+      user,
+      login,
+      logout,
+      updateUser, // NEW: Exposed
+      loading,
+      notificationCount,
+      setNotificationCount,
+      fetchNotificationCount
+    }}>
       {children}
     </AuthContext.Provider>
   );

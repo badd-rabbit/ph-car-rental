@@ -56,34 +56,45 @@ def create_tables():
 
 @app.on_event("startup")
 async def add_missing_columns():
-    """Add missing columns to bookings table on startup"""
+    """Add missing columns and fix payment_method on startup"""
     from sqlalchemy import text
 
-    logger.info("Checking for missing columns in bookings table...")
+    logger.info("Running database migrations...")
     try:
         with engine.connect() as conn:
-            # Add total_price if not exists
+            # 1. Add total_price if not exists
             try:
                 conn.execute(text("""
                     ALTER TABLE bookings 
                     ADD COLUMN IF NOT EXISTS total_price FLOAT
                 """))
                 conn.commit()
-                logger.info("✓ Ensured total_price column exists")
+                logger.info("✓ total_price column")
             except Exception as e:
-                logger.warning(f"total_price check: {e}")
+                logger.warning(f"total_price: {e}")
 
-            # Add created_at if not exists
+            # 2. Add created_at if not exists
             try:
                 conn.execute(text("""
                     ALTER TABLE bookings 
                     ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 """))
                 conn.commit()
-                logger.info("✓ Ensured created_at column exists")
+                logger.info("✓ created_at column")
             except Exception as e:
-                logger.warning(f"created_at check: {e}")
+                logger.warning(f"created_at: {e}")
 
-        logger.info("Database migration completed!")
+            # 3. Fix payment_method - change from ENUM to VARCHAR
+            try:
+                conn.execute(text("""
+                    ALTER TABLE bookings 
+                    ALTER COLUMN payment_method TYPE VARCHAR
+                """))
+                conn.commit()
+                logger.info("✓ payment_method changed to VARCHAR")
+            except Exception as e:
+                logger.warning(f"payment_method: {e}")
+
+        logger.info("✅ Database migrations completed!")
     except Exception as e:
         logger.error(f"Migration error: {e}")

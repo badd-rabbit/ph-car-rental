@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 
-// Custom hook to handle the 3-minute cancellation logic
 export const useCancellationTimer = (bookings) => {
   const [now, setNow] = useState(new Date());
 
@@ -13,8 +12,9 @@ export const useCancellationTimer = (bookings) => {
     if (booking.status === 'pending') return true;
     if (booking.status === 'approved' && booking.start_date) {
       const startDate = new Date(booking.start_date);
-      const diffMinutes = Math.abs((now - startDate) / 60000);
-      return diffMinutes <= 3;
+      // FIX: Only allow cancellation BEFORE start_date + 3 minutes
+      const deadline = new Date(startDate.getTime() + 3 * 60 * 1000);
+      return now < deadline;
     }
     return false;
   };
@@ -22,7 +22,9 @@ export const useCancellationTimer = (bookings) => {
   const getTimeRemaining = (booking) => {
     if (!booking.start_date) return '0:00';
     const startDate = new Date(booking.start_date);
-    const diffMs = 3 * 60 * 1000 - Math.abs(now - startDate);
+    const deadline = new Date(startDate.getTime() + 3 * 60 * 1000);
+    const diffMs = deadline - now;
+
     if (diffMs <= 0) return '0:00';
     const minutes = Math.floor(diffMs / 60000);
     const seconds = Math.floor((diffMs % 60000) / 1000);

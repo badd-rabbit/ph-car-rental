@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field, model_validator
+from pydantic import BaseModel, EmailStr, Field, model_validator, field_validator
 from typing import Optional, List, Any
 from datetime import datetime
 import json
@@ -74,24 +74,23 @@ class CarResponse(BaseModel):
     price_per_day: float
     car_type: str
     fuel_type: str
-    images: Any
+    images: List[str] = []  # Changed from Any to List[str]
     status: str
     average_rating: float = 0.0
     review_count: int = 0
 
-    @model_validator(mode='before')
+    # This validator forces the string from DB to become a List
+    @field_validator('images', mode='before')
     @classmethod
-    def parse_images(cls, data: Any) -> Any:
-        if isinstance(data, dict):
-            images = data.get("images")
-            if isinstance(images, str):
-                try:
-                    data["images"] = json.loads(images)
-                except json.JSONDecodeError:
-                    data["images"] = []
-            elif images is None:
-                data["images"] = []
-        return data
+    def parse_images(cls, v):
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except json.JSONDecodeError:
+                return []
+        if v is None:
+            return []
+        return v
 
     class Config:
         from_attributes = True

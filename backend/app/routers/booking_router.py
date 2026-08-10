@@ -9,6 +9,8 @@ from app.schemas import BookingCreate, FeedbackCreate, FeedbackResponse
 from app.auth import get_current_user, require_role
 from app.services.payment_strategy import PaymentContext, CashStrategy, GCashStrategy, MayaStrategy, \
     BankTransferStrategy
+import logging
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/bookings", tags=["Bookings"])
 
@@ -47,22 +49,46 @@ def serialize_car(car):
 @router.post("/", response_model=dict)
 def create_booking(booking: BookingCreate, db: Session = Depends(get_db),
                    current_user: User = Depends(get_current_user)):
-    car = db.query(Car).filter(Car.id == booking.car_id).first()
-    if not car: raise HTTPException(status_code=404, detail="Car not found")
+    try:
+        car = db.query(Car).filter(Car.id == booking.car_id).first()
+        if not car:
+            raise HTTPException(status_code=404, detail="Car not found")
 
-    db_booking = Booking(
-        user_id=current_user.id, car_id=booking.car_id,
-        start_date=booking.start_date, end_date=booking.end_date,
-        payment_method=booking.payment_method, status=BookingStatus.PENDING
-    )
-    db.add(db_booking)
-    db.commit()
+        # Validate payment method
+        valid_methods = ["cash", "gcash", "maya", "bank_transfer"]
+        payment_method = booking.payment_method.lower() if booking.payment_method else "cash"
+        if payment_method not in valid_methods:
+            raise HTTPException(status_code=400, detail=f"Invalid payment method. Must be one of: {', '.join(valid_methods)}")
 
-    strategy = get_payment_strategy(booking.payment_method.value)
-    context = PaymentContext(strategy)
-    payment_result = context.execute_payment(1000.0)
+        db_booking = Booking(
+            user_id=current_user.id,
+            car_id=booking.car_id,
+            start_date=booking.start_date,
+            end_date=booking.end_date,
+            payment_method=payment_method,
+            status=BookingStatus.PENDING,
+            created_at=datetime.utcnow()
+        )
+        db.add(db_booking)
+        db.commit()
+        db.refresh(db_booking)
 
-    return {"booking_id": db_booking.id, "payment_details": payment_result}
+        # Calculate total price
+        days = (booking.end_date - booking.start_date).days
+        total_price = max(1, days) * car.price_per_day
+
+        return {
+            "booking_id": db_booking.id,
+            "total_price": total_price,
+            "status": "pending",
+            "message": "Booking created successfully"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error creating booking: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to create booking: {str(e)}")
 
 
 @router.get("/notification-count")

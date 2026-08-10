@@ -22,32 +22,33 @@ export const AuthProvider = ({ children }) => {
   }, [user]);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const userData = localStorage.getItem('user');
+  const token = localStorage.getItem('token');
+  const userData = localStorage.getItem('user');
 
-    if (token && userData) {
-      const parsedUser = JSON.parse(userData);
-      setUser(parsedUser);
-      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  if (token && userData) {
+    const parsedUser = JSON.parse(userData);
+    setUser(parsedUser);
+    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
-      // Initial fetch
+    // Initial fetch
+    api.get('/bookings/notification-count')
+      .then(res => setNotificationCount(res.data.count))
+      .catch(() => console.error('Failed to fetch initial notification count'));
+
+    //  Poll every 30 seconds
+    const interval = setInterval(() => {
       api.get('/bookings/notification-count')
         .then(res => setNotificationCount(res.data.count))
-        .catch(() => console.error('Failed to fetch initial notification count'));
+        .catch(() => {});
+    }, 30000);
 
-      // 🔄 Poll every 30 seconds to keep the badge updated in real-time
-      const interval = setInterval(() => {
-        api.get('/bookings/notification-count')
-          .then(res => setNotificationCount(res.data.count))
-          .catch(() => {});
-      }, 30000);
+    // Cleanup interval on unmount
+    return () => clearInterval(interval);
+  }
 
-      // Cleanup interval on unmount
-      return () => clearInterval(interval);
-    }
-
-    setLoading(false);
-  }, []);
+  // ✅ THIS MUST BE OUTSIDE THE IF BLOCK
+  setLoading(false);
+}, []);
 
   const login = async (loginData) => {
     const { access_token, user: userData } = loginData;

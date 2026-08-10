@@ -44,6 +44,28 @@ class CarResponse(BaseModel):
     average_rating: float = 0.0
     review_count: int = 0
 
+    class BookingCreate(BaseModel):
+        car_id: int
+        start_date: datetime
+        end_date: datetime
+        payment_method: str
+
+    class FeedbackCreate(BaseModel):
+        booking_id: int
+        rating: int
+        comment: Optional[str] = None
+
+    class FeedbackResponse(BaseModel):
+        id: int
+        booking_id: int
+        car_id: int
+        rating: int
+        comment: Optional[str]
+        created_at: Optional[datetime]
+
+        class Config:
+            from_attributes = True
+
     @model_validator(mode='before')
     @classmethod
     def parse_images(cls, data: Any) -> Any:

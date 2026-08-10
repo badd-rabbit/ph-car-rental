@@ -77,10 +77,10 @@ class Booking(Base):
     end_date = Column(DateTime)
     status = Column(Enum(BookingStatus), default=BookingStatus.PENDING)
     payment_method = Column(String)
-    total_price = Column(Float, nullable=True)
+    total_price = Column(Float, nullable=True)  # Make sure this exists
     cancellation_reason = Column(String, nullable=True)
     approved_at = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow) # <--- ADD THIS LINE
+    created_at = Column(DateTime, nullable=True, default=datetime.utcnow)  # Make sure this exists
 
     # Relationships
     user = relationship("User", back_populates="bookings")

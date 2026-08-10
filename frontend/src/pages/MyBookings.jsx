@@ -8,12 +8,15 @@ import { getImageUrl, getPlaceholderImage, getStatusColor } from '../utils/helpe
 import { useCancellationTimer } from '../hooks/useCancellationTimer';
 import FeedbackModal from '../components/FeedbackModal';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
+import CancelBookingModal from '../components/CancelBookingModal';
 
 const MyBookings = () => {
   const navigate = useNavigate();
   const { user, setNotificationCount } = useAuth();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   // Modal States
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
@@ -40,18 +43,26 @@ const MyBookings = () => {
     }
   };
 
-  const handleCancel = async (bookingId) => {
-    const reason = window.prompt("Please enter a reason for cancellation:");
-    if (!reason) return;
+   // Replace handleCancel function:
+  const openCancelModal = (bookingId) => {
+    setSelectedBookingId(bookingId);
+    setCancelModalOpen(true);
+  };
 
+  const handleCancelConfirm = async (reason) => {
+    if (!selectedBookingId) return;
+    setIsCancelling(true);
     try {
-      await api.put(`/bookings/${bookingId}/cancel?reason=${encodeURIComponent(reason)}`);
-      toast.success('Booking cancelled');
+      await api.put(`/bookings/${selectedBookingId}/cancel?reason=${encodeURIComponent(reason)}`);
+      toast.success('Booking cancelled successfully');
+      setCancelModalOpen(false);
       fetchBookings();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to cancel booking');
+    } finally {
+      setIsCancelling(false);
     }
-  };
+};
 
   const openDeleteModal = (bookingId) => {
     setSelectedBookingId(bookingId);
@@ -174,7 +185,7 @@ const MyBookings = () => {
 
                     <div className="flex gap-3 mt-4 flex-wrap">
                       {canCancel(booking) && (
-                        <button onClick={() => handleCancel(booking.id)} className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition flex items-center gap-2">
+                        <button onClick={() => openCancelModal(booking.id)} className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition flex items-center gap-2">
                           <FaTimes /> Cancel Booking
                         </button>
                       )}
@@ -218,6 +229,13 @@ const MyBookings = () => {
         onClose={() => setDeleteModalOpen(false)}
         onConfirm={handleDeleteConfirm}
         itemName="this booking"
+      />
+
+      <CancelBookingModal
+        isOpen={cancelModalOpen}
+        onClose={() => setCancelModalOpen(false)}
+        onConfirm={handleCancelConfirm}
+        isLoading={isCancelling}
       />
     </div>
   );

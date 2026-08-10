@@ -99,12 +99,13 @@ const AdminBookings = () => {
   };
 
   const filteredBookings = bookings.filter(booking => {
-    if (statusFilter === 'all') return true;
-    if (statusFilter === 'cancelled') {
-      return booking.status.toLowerCase().includes('cancelled');
-    }
-    return booking.status.toLowerCase() === statusFilter.toLowerCase();
-  });
+  if (statusFilter === 'all') return true;
+  if (statusFilter === 'cancelled') {
+    // Check for both user and admin cancelled
+    return booking.status === 'cancelled_user' || booking.status === 'cancelled_admin';
+  }
+  return booking.status === statusFilter;
+});
 
   if (loading) {
     return (

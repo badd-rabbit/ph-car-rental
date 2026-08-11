@@ -13,30 +13,36 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+  e.preventDefault();
+  setLoading(true);
 
-    try {
-      const res = await api.post('/auth/login', {
-        email,
-        password,
-      });
+  try {
+    // Create form data for OAuth2PasswordRequestForm
+    const formData = new FormData();
+    formData.append('username', email);  // OAuth2 expects 'username' not 'email'
+    formData.append('password', password);
 
-      await login(res.data);
-      toast.success('Login successful!');
+    const res = await api.post('/auth/login', formData, {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    });
 
-      if (res.data.user.role === 'super_admin' || res.data.user.role === 'staff') {
-        navigate('/dashboard');
-      } else {
-        navigate('/dashboard');
-      }
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Login failed. Please check your credentials.');
-    } finally {
-      setLoading(false);
+    await login(res.data);
+    toast.success('Login successful!');
+
+    if (res.data.user.role === 'super_admin' || res.data.user.role === 'staff') {
+      navigate('/dashboard');
+    } else {
+      navigate('/dashboard');
     }
-  };
-
+  } catch (error) {
+    console.error('Login error:', error);
+    toast.error(error.response?.data?.detail || 'Login failed. Please check your credentials.');
+  } finally {
+    setLoading(false);
+  }
+};
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       {/* Login Modal Container with relative positioning */}

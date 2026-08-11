@@ -3,32 +3,26 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { toast } from 'react-toastify';
-import { FaPhone, FaEnvelope, FaCalendar, FaCheck, FaTimes, FaCheckCircle, FaTrash } from 'react-icons/fa';
-import { getImageUrl, getPlaceholderImage, getStatusColor } from '../utils/helpers';
-import RejectBookingModal from '../components/RejectBookingModal';
-import DeleteConfirmModal from '../components/DeleteConfirmModal';
+import { FaCalendar, FaCar, FaCheck, FaTimes, FaClock } from 'react-icons/fa';
+import { getStatusColor } from '../utils/helpers';
+import MobileNavbar from '../components/MobileNavbar';
 
 const AdminBookings = () => {
   const navigate = useNavigate();
-  const { setNotificationCount } = useAuth();
+  const { user, resetNotificationCount } = useAuth(); // Added resetNotificationCount
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
 
-  // Modal States
-  const [rejectModalOpen, setRejectModalOpen] = useState(false);
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [selectedBookingId, setSelectedBookingId] = useState(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-
   useEffect(() => {
     fetchBookings();
-    setNotificationCount(0);
+    // Reset notification count when viewing bookings
+    resetNotificationCount();
   }, []);
 
   const fetchBookings = async () => {
     try {
-      const res = await api.get('/bookings/admin/all');
+      const res = await api.get('/bookings/');
       setBookings(res.data);
     } catch (error) {
       console.error('Error fetching bookings:', error);
@@ -37,6 +31,7 @@ const AdminBookings = () => {
       setLoading(false);
     }
   };
+
 
   const handleApprove = async (bookingId) => {
     try {

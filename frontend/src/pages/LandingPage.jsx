@@ -81,15 +81,32 @@ const LandingPage = () => {
   ];
 
   const renderRating = (rating, count) => {
-    if (count === 0 || rating === 0) return <span className="text-gray-400 text-sm italic">Not yet Rated</span>;
+  if (count === 0 || !rating || rating === 0) {
     return (
       <div className="flex items-center gap-1 mt-1">
-        <FaStar className="text-yellow-400" />
-        <span className="text-sm font-bold text-gray-800">{rating.toFixed(1)}</span>
-        <span className="text-xs text-gray-500">({count} reviews)</span>
+        <span className="text-xs text-gray-400 italic">Not yet Rated</span>
       </div>
     );
-  };
+  }
+
+  return (
+    <div className="flex items-center gap-1 mt-1">
+      <div className="flex">
+        {[...Array(5)].map((_, i) => (
+          <FaStar
+            key={i}
+            className={`text-sm ${
+              i < Math.round(rating) ? 'text-yellow-400' : 'text-gray-300'
+            }`}
+          />
+        ))}
+      </div>
+      <span className="text-xs text-gray-600 font-medium">
+        {rating.toFixed(1)} ({count})
+      </span>
+    </div>
+  );
+};
 
   const renderStars = (rating) => {
     return (

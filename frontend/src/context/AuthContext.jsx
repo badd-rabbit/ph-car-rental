@@ -9,6 +9,20 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [notificationCount, setNotificationCount] = useState(0);
+  const [lastResetTime, setLastResetTime] = useState(null);
+
+  const fetchNotificationCount = useCallback(async () => {
+    if (!user) return;
+    try {
+      const res = await api.get('/bookings/notification-count');
+      // Only update if not recently reset (within last 5 minutes)
+      if (!lastResetTime || Date.now() - lastResetTime > 300000) {
+        setNotificationCount(res.data.count);
+      }
+    } catch (error) {
+      console.error('Failed to fetch notification count');
+    }
+  }, [user, lastResetTime]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -27,20 +41,18 @@ export const AuthProvider = ({ children }) => {
       // Poll every 30 seconds
       const interval = setInterval(() => {
         api.get('/bookings/notification-count')
-          .then(res => setNotificationCount(res.data.count))
+          .then(res => {
+            // Only update if not recently reset
+            if (!lastResetTime || Date.now() - lastResetTime > 300000) {
+              setNotificationCount(res.data.count);
+            }
+          })
           .catch(() => {});
       }, 30000);
 
-      // ✅ FIX: Set loading to false HERE, before the return statement
-      setLoading(false);
-
-      // Cleanup function
-      return () => {
-        clearInterval(interval);
-      };
+      return () => clearInterval(interval);
     }
 
-    // ✅ FIX: If no token, also set loading to false
     setLoading(false);
   }, []);
 
@@ -50,7 +62,6 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('user', JSON.stringify(userData));
     api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
     setUser(userData);
-    setLoading(false); // Ensure loading is false after login
 
     api.get('/bookings/notification-count')
       .then(res => setNotificationCount(res.data.count))
@@ -68,7 +79,14 @@ export const AuthProvider = ({ children }) => {
     delete api.defaults.headers.common['Authorization'];
     setUser(null);
     setNotificationCount(0);
-    setLoading(false);
+    setLastResetTime(null);
+  };
+
+  // NEW: Function to manually reset notification count
+  const resetNotificationCount = () => {
+    setNotificationCount(0);
+    setLastResetTime(Date.now());
+    localStorage.setItem('lastNotificationReset', Date.now().toString());
   };
 
   return (
@@ -79,7 +97,9 @@ export const AuthProvider = ({ children }) => {
       updateUser,
       loading,
       notificationCount,
-      setNotificationCount
+      setNotificationCount,
+      resetNotificationCount,
+      fetchNotificationCount
     }}>
       {children}
     </AuthContext.Provider>

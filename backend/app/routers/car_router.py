@@ -54,16 +54,30 @@ async def upload_image(file: UploadFile = File(...)):
 
 @router.get("/", response_model=List[CarResponse])
 def get_cars(
-        car_type: Optional[str] = None,
-        fuel_type: Optional[str] = None,
+        car_type: str = None,
+        fuel_type: str = None,
         db: Session = Depends(get_db)
 ):
     query = db.query(Car)
+
     if car_type:
         query = query.filter(Car.car_type == car_type)
     if fuel_type:
         query = query.filter(Car.fuel_type == fuel_type)
-    return query.all()
+
+    cars = query.all()
+
+    # Calculate ratings for each car
+    for car in cars:
+        reviews = db.query(Feedback).filter(Feedback.car_id == car.id).all()
+        if reviews:
+            car.average_rating = sum(r.rating for r in reviews) / len(reviews)
+            car.review_count = len(reviews)
+        else:
+            car.average_rating = 0
+            car.review_count = 0
+
+    return cars
 
 
 @router.post("/", response_model=CarResponse)

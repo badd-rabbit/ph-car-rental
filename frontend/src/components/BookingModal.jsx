@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
-import { FaTimes, FaCalendar, FaClock, FaMoneyBillWave, FaCreditCard, FaMobileAlt, FaBuilding } from 'react-icons/fa';
+import { FaTimes, FaCalendar, FaMoneyBillWave, FaCreditCard, FaMobileAlt, FaBuilding, FaCheck } from 'react-icons/fa';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
+import { toast } from 'react-toastify';
+import api from '../services/api';
 
 const BookingModal = ({ car, onClose, onBookingSuccess }) => {
   const [startDate, setStartDate] = useState(null);
@@ -12,7 +14,6 @@ const BookingModal = ({ car, onClose, onBookingSuccess }) => {
   const [showEndCalendar, setShowEndCalendar] = useState(false);
 
   useEffect(() => {
-    // Prevent body scroll when modal is open
     document.body.style.overflow = 'hidden';
     return () => {
       document.body.style.overflow = 'unset';
@@ -22,7 +23,6 @@ const BookingModal = ({ car, onClose, onBookingSuccess }) => {
   const handleStartDateChange = (date) => {
     setStartDate(date);
     setShowStartCalendar(false);
-    // Auto-focus end date
     if (endDate && date > endDate) {
       setEndDate(null);
     }
@@ -42,17 +42,37 @@ const BookingModal = ({ car, onClose, onBookingSuccess }) => {
 
   const handleSubmit = async () => {
     if (!startDate || !endDate) {
-      alert('Please select both start and end dates');
+      toast.error('Please select both start and end dates');
       return;
     }
 
     if (startDate >= endDate) {
-      alert('End date must be after start date');
+      toast.error('End date must be after start date');
       return;
     }
 
     setLoading(true);
-    // ... submit logic
+
+    try {
+      const bookingData = {
+        car_id: car.id,
+        start_date: startDate.toISOString(),
+        end_date: endDate.toISOString(),
+        payment_method: paymentMethod,
+      };
+
+      await api.post('/bookings/', bookingData);
+
+      toast.success('Booking created successfully!');
+      onClose();
+      onBookingSuccess();
+    } catch (error) {
+      console.error('Booking error:', error);
+      const errorMessage = error.response?.data?.detail || 'Failed to create booking. Please try again.';
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const paymentMethods = [
@@ -63,33 +83,33 @@ const BookingModal = ({ car, onClose, onBookingSuccess }) => {
   ];
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end sm:items-center justify-center sm:p-4">
-      {/* Mobile-optimized Modal */}
-      <div className="bg-white w-full sm:max-w-lg sm:rounded-lg sm:max-h-[90vh] max-h-[95vh] overflow-y-auto animate-slide-up">
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-lg w-full max-w-lg max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="bg-primary text-white p-4 sm:p-6 sticky top-0 z-10">
+        <div className="bg-primary text-white p-6 sticky top-0 z-10">
           <div className="flex justify-between items-start">
             <div className="flex-1">
-              <h2 className="text-xl sm:text-2xl font-bold">Book {car.make} {car.model}</h2>
+              <h2 className="text-2xl font-bold">Book {car.make} {car.model}</h2>
               <p className="text-blue-200 text-sm mt-1">{car.year} • {car.color} • {car.seat_number} Seats</p>
             </div>
             <button
               onClick={onClose}
-              className="ml-4 p-2 hover:bg-blue-800 rounded-full transition"
+              disabled={loading}
+              className="ml-4 p-2 hover:bg-blue-800 rounded-full transition disabled:opacity-50"
             >
               <FaTimes size={20} />
             </button>
           </div>
         </div>
 
-        <div className="p-4 sm:p-6 space-y-6">
-          {/* Daily Rate Card */}
+        <div className="p-6 space-y-6">
+          {/* Daily Rate */}
           <div className="bg-blue-50 rounded-lg p-4 flex justify-between items-center">
             <div className="flex items-center gap-2">
               <FaMoneyBillWave className="text-primary" />
-              <span className="text-sm sm:text-base font-medium text-gray-700">Daily Rate</span>
+              <span className="text-base font-medium text-gray-700">Daily Rate</span>
             </div>
-            <span className="text-lg sm:text-xl font-bold text-primary">
+            <span className="text-xl font-bold text-primary">
               ₱{car.price_per_day.toLocaleString()}<span className="text-xs text-gray-600">/day</span>
             </span>
           </div>
@@ -101,7 +121,7 @@ const BookingModal = ({ car, onClose, onBookingSuccess }) => {
               RENTAL PERIOD
             </h3>
 
-            {/* Start Date & Time */}
+            {/* Start Date */}
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Start Date & Time
@@ -112,7 +132,8 @@ const BookingModal = ({ car, onClose, onBookingSuccess }) => {
                     setShowStartCalendar(!showStartCalendar);
                     setShowEndCalendar(false);
                   }}
-                  className="w-full p-3 border border-gray-300 rounded-lg text-left hover:border-primary transition flex items-center justify-between"
+                  disabled={loading}
+                  className="w-full p-3 border border-gray-300 rounded-lg text-left hover:border-primary transition flex items-center justify-between disabled:opacity-50"
                 >
                   <span className={startDate ? 'text-gray-900' : 'text-gray-400'}>
                     {startDate ? startDate.toLocaleString() : 'Select start date and time'}
@@ -138,7 +159,7 @@ const BookingModal = ({ car, onClose, onBookingSuccess }) => {
               <p className="text-xs text-gray-500 mt-1">Pickup date and time</p>
             </div>
 
-            {/* End Date & Time */}
+            {/* End Date */}
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 End Date & Time
@@ -149,7 +170,8 @@ const BookingModal = ({ car, onClose, onBookingSuccess }) => {
                     setShowEndCalendar(!showEndCalendar);
                     setShowStartCalendar(false);
                   }}
-                  className="w-full p-3 border border-gray-300 rounded-lg text-left hover:border-primary transition flex items-center justify-between"
+                  disabled={loading}
+                  className="w-full p-3 border border-gray-300 rounded-lg text-left hover:border-primary transition flex items-center justify-between disabled:opacity-50"
                 >
                   <span className={endDate ? 'text-gray-900' : 'text-gray-400'}>
                     {endDate ? endDate.toLocaleString() : 'Select return date and time'}
@@ -175,7 +197,7 @@ const BookingModal = ({ car, onClose, onBookingSuccess }) => {
               <p className="text-xs text-gray-500 mt-1">Return date and time</p>
             </div>
 
-            {/* Duration Display */}
+            {/* Duration */}
             {startDate && endDate && startDate < endDate && (
               <div className="bg-green-50 border border-green-200 rounded-lg p-3">
                 <p className="text-sm text-green-800 font-medium">
@@ -199,25 +221,24 @@ const BookingModal = ({ car, onClose, onBookingSuccess }) => {
                 return (
                   <button
                     key={method.id}
-                    onClick={() => setPaymentMethod(method.id)}
-                    className={`p-3 sm:p-4 rounded-lg border-2 transition flex items-center gap-2 sm:gap-3 ${
+                    onClick={() => !loading && setPaymentMethod(method.id)}
+                    disabled={loading}
+                    className={`p-4 rounded-lg border-2 transition flex items-center gap-3 disabled:opacity-50 ${
                       paymentMethod === method.id
                         ? 'border-primary bg-blue-50'
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
-                    <Icon className={`text-lg sm:text-xl ${
+                    <Icon className={`text-xl ${
                       paymentMethod === method.id ? 'text-primary' : 'text-gray-400'
                     }`} />
-                    <span className={`text-sm sm:text-base font-medium ${
+                    <span className={`text-base font-medium ${
                       paymentMethod === method.id ? 'text-primary' : 'text-gray-700'
                     }`}>
                       {method.label}
                     </span>
                     {paymentMethod === method.id && (
-                      <svg className="w-4 h-4 sm:w-5 sm:h-5 text-primary ml-auto" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
+                      <FaCheck className="w-5 h-5 text-primary ml-auto" />
                     )}
                   </button>
                 );
@@ -229,15 +250,12 @@ const BookingModal = ({ car, onClose, onBookingSuccess }) => {
           <button
             onClick={handleSubmit}
             disabled={loading || !startDate || !endDate}
-            className="w-full bg-secondary text-white py-3 sm:py-4 rounded-lg font-bold text-base sm:text-lg hover:bg-orange-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-secondary text-white py-4 rounded-lg font-bold text-lg hover:bg-orange-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Processing...' : `Confirm Booking - ₱${calculateTotal().toLocaleString()}`}
           </button>
         </div>
       </div>
-
-      {/* Click outside to close */}
-      <div className="absolute inset-0 -z-10" onClick={onClose} />
     </div>
   );
 };

@@ -13,7 +13,7 @@ import MobileNavbar from '../components/MobileNavbar';
 
 const MyBookings = () => {
   const navigate = useNavigate();
-  const { user, setNotificationCount } = useAuth();
+  const { user, setNotificationCount, resetNotificationCount } = useAuth();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -28,7 +28,7 @@ const MyBookings = () => {
 
   useEffect(() => {
     fetchBookings();
-    setNotificationCount(0);
+    resetNotificationCount();
   }, []);
 
   const fetchBookings = async () => {
@@ -88,8 +88,9 @@ const MyBookings = () => {
     setFeedbackModalOpen(true);
   };
 
+  // ✅ UPDATED: Added 'disapproved' to allowed delete statuses
   const canDelete = (booking) => {
-    return ['completed', 'cancelled_user', 'cancelled_admin'].includes(booking.status?.toLowerCase());
+    return ['completed', 'cancelled_user', 'cancelled_admin', 'disapproved'].includes(booking.status?.toLowerCase());
   };
 
   if (loading) {
@@ -151,11 +152,12 @@ const MyBookings = () => {
                         {booking.status?.toUpperCase().replace('_', ' ')}
                       </span>
                     </div>
+
                     {/* Show rejection reason if disapproved */}
                     {booking.status === 'disapproved' && booking.cancellation_reason && (
                       <div className="mt-4 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg">
                         <p className="text-sm text-red-800 font-semibold mb-2 flex items-center gap-2">
-                          <span>⚠️</span> Reason for Rejection:
+                          <span>️</span> Reason for Rejection:
                         </p>
                         <p className="text-sm text-red-700 bg-white p-3 rounded border border-red-100">
                           {booking.cancellation_reason}
@@ -167,7 +169,7 @@ const MyBookings = () => {
                     {booking.status === 'cancelled_user' && booking.cancellation_reason && (
                       <div className="mt-4 p-4 bg-yellow-50 border-l-4 border-yellow-500 rounded-lg">
                         <p className="text-sm text-yellow-800 font-semibold mb-2 flex items-center gap-2">
-                          <span>📝</span> Cancellation Reason:
+                          <span></span> Cancellation Reason:
                         </p>
                         <p className="text-sm text-yellow-700 bg-white p-3 rounded border border-yellow-100">
                           {booking.cancellation_reason}
@@ -210,7 +212,7 @@ const MyBookings = () => {
                     {canCancel(booking) && booking.status !== 'pending' && (
                       <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                         <p className="text-sm text-yellow-800 font-medium">
-                          ⏰ Cancellation window: {getTimeRemaining(booking)} remaining
+                           Cancellation window: {getTimeRemaining(booking)} remaining
                         </p>
                       </div>
                     )}
@@ -245,6 +247,7 @@ const MyBookings = () => {
                         </div>
                       )}
 
+                      {/* ✅ Delete button now shows for disapproved bookings too */}
                       {canDelete(booking) && (
                         <button
                           onClick={() => openDeleteModal(booking.id)}

@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { FaBars, FaTimes, FaBell, FaCar, FaClipboardList, FaUsers, FaCog, FaSignOutAlt } from 'react-icons/fa';
+import { FaBars, FaTimes, FaCar, FaClipboardList, FaUsers, FaCog, FaSignOutAlt } from 'react-icons/fa';
 
 const MobileNavbar = () => {
   const navigate = useNavigate();
-  const { user, logout, notificationCount } = useAuth();
+  const { user, logout, notificationCount, resetNotificationCount } = useAuth(); // Added resetNotificationCount
   const [isOpen, setIsOpen] = useState(false);
 
   const isAdmin = user?.role === 'super_admin' || user?.role === 'staff';
@@ -16,34 +16,6 @@ const MobileNavbar = () => {
     navigate('/');
     setIsOpen(false);
   };
-
-  const navItems = [
-    {
-      label: 'Dashboard',
-      path: '/dashboard',
-      icon: <FaCar />,
-      show: true
-    },
-    {
-      label: isAdmin ? 'Manage Bookings' : 'My Bookings',
-      path: isAdmin ? '/admin-bookings' : '/my-bookings',
-      icon: <FaClipboardList />,
-      show: true,
-      badge: notificationCount
-    },
-    {
-      label: 'Manage Staff',
-      path: '/manage-staff',
-      icon: <FaUsers />,
-      show: isSuperAdmin
-    },
-    {
-      label: 'Settings',
-      path: '/settings',
-      icon: <FaCog />,
-      show: true
-    }
-  ];
 
   return (
     <>
@@ -60,6 +32,7 @@ const MobileNavbar = () => {
           <button
             onClick={() => setIsOpen(!isOpen)}
             className="p-2 rounded-lg hover:bg-blue-800 transition"
+            aria-label="Toggle menu"
           >
             {isOpen ? <FaTimes size={24} /> : <FaBars size={24} />}
           </button>
@@ -70,7 +43,7 @@ const MobileNavbar = () => {
       {isOpen && (
         <div className="fixed inset-0 z-30 md:hidden">
           <div className="absolute inset-0 bg-black bg-opacity-50" onClick={() => setIsOpen(false)} />
-          <div className="absolute right-0 top-0 bottom-0 w-64 bg-white shadow-xl transform transition-transform">
+          <div className="absolute right-0 top-0 bottom-0 w-64 bg-white shadow-xl">
             <div className="p-4 bg-primary text-white">
               <div className="flex justify-between items-center">
                 <h2 className="font-bold text-lg">Menu</h2>
@@ -82,24 +55,50 @@ const MobileNavbar = () => {
             </div>
 
             <nav className="py-4">
-              {navItems.filter(item => item.show).map((item, index) => (
+              <button
+                onClick={() => { navigate('/dashboard'); setIsOpen(false); }}
+                className="w-full px-6 py-3 flex items-center gap-3 hover:bg-gray-100 transition"
+              >
+                <FaCar className="text-primary text-xl" />
+                <span className="font-medium text-gray-800">Dashboard</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  resetNotificationCount(); // Reset notification
+                  navigate(isAdmin ? '/admin-bookings' : '/my-bookings');
+                  setIsOpen(false);
+                }}
+                className="w-full px-6 py-3 flex items-center gap-3 hover:bg-gray-100 transition relative"
+              >
+                <FaClipboardList className="text-primary text-xl" />
+                <span className="font-medium text-gray-800">
+                  {isAdmin ? 'Manage Bookings' : 'My Bookings'}
+                </span>
+                {notificationCount > 0 && (
+                  <span className="absolute right-4 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                    {notificationCount > 99 ? '99+' : notificationCount}
+                  </span>
+                )}
+              </button>
+
+              {isSuperAdmin && (
                 <button
-                  key={index}
-                  onClick={() => {
-                    navigate(item.path);
-                    setIsOpen(false);
-                  }}
-                  className="w-full px-6 py-3 flex items-center gap-3 hover:bg-gray-100 transition relative"
+                  onClick={() => { navigate('/manage-staff'); setIsOpen(false); }}
+                  className="w-full px-6 py-3 flex items-center gap-3 hover:bg-gray-100 transition"
                 >
-                  <span className="text-primary text-xl">{item.icon}</span>
-                  <span className="font-medium text-gray-800">{item.label}</span>
-                  {item.badge > 0 && (
-                    <span className="absolute right-4 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
-                      {item.badge > 99 ? '99+' : item.badge}
-                    </span>
-                  )}
+                  <FaUsers className="text-primary text-xl" />
+                  <span className="font-medium text-gray-800">Manage Staff</span>
                 </button>
-              ))}
+              )}
+
+              <button
+                onClick={() => { navigate('/settings'); setIsOpen(false); }}
+                className="w-full px-6 py-3 flex items-center gap-3 hover:bg-gray-100 transition"
+              >
+                <FaCog className="text-primary text-xl" />
+                <span className="font-medium text-gray-800">Settings</span>
+              </button>
 
               <button
                 onClick={handleLogout}
@@ -113,14 +112,17 @@ const MobileNavbar = () => {
         </div>
       )}
 
-      {/* Desktop Header (existing) */}
+      {/* Desktop Header */}
       <nav className="hidden md:block bg-primary text-white shadow-md">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
           <h1 className="text-xl font-bold">PH Car Rental {isAdmin ? 'Admin' : 'Dashboard'}</h1>
           <div className="flex items-center gap-3 flex-wrap">
             {!isAdmin && (
               <button
-                onClick={() => navigate('/my-bookings')}
+                onClick={() => {
+                  resetNotificationCount(); // Reset notification
+                  navigate('/my-bookings');
+                }}
                 className="relative bg-white text-primary px-4 py-2 rounded text-sm hover:bg-gray-100 transition flex items-center gap-2"
               >
                 <FaClipboardList />
@@ -134,7 +136,10 @@ const MobileNavbar = () => {
             )}
             {isAdmin && (
               <button
-                onClick={() => navigate('/admin-bookings')}
+                onClick={() => {
+                  resetNotificationCount(); // Reset notification
+                  navigate('/admin-bookings');
+                }}
                 className="relative bg-white text-primary px-4 py-2 rounded text-sm hover:bg-gray-100 transition flex items-center gap-2"
               >
                 <FaClipboardList />

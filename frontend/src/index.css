@@ -2,26 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Mobile-first responsive utilities */
-@layer utilities {
-  .touch-target {
-    @apply min-h-[44px] min-w-[44px];
+/* Mobile slide-up animation */
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
   }
-
-  .text-responsive {
-    @apply text-sm sm:text-base;
-  }
-
-  .padding-responsive {
-    @apply px-4 sm:px-6 lg:px-8;
+  to {
+    transform: translateY(0);
   }
 }
 
-/* Smooth transitions for mobile menu */
-@layer components {
-  .mobile-menu-transition {
-    transition: transform 0.3s ease-in-out;
-  }
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
 }
 
 /* Prevent zoom on input focus for iOS */
@@ -29,31 +21,21 @@ input, select, textarea {
   font-size: 16px;
 }
 
-/* Better touch targets for mobile */
-button, a {
+/* Better touch targets */
+button {
   min-height: 44px;
 }
 
-/* Smooth scrolling */
-html {
-  scroll-behavior: smooth;
-}
-
-/* Custom scrollbar for webkit */
+/* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
 }
 
 ::-webkit-scrollbar-track {
   background: #f1f1f1;
-  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb {
   background: #2563eb;
   border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #1d4ed8;
 }
